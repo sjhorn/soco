@@ -2,12 +2,14 @@
 /// the main entry to the SoCo functionality.
 library;
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
+import 'exceptions.dart';
 import 'music_library.dart';
 import 'services.dart';
 import 'zonegroupstate.dart';
@@ -1217,13 +1219,302 @@ class SoCo {
         .toList();
   }
 
-  // TODO: Implement remaining methods (~80+ methods still to port)
-  // - Queue management
-  // - Group management
-  // - Playlists and favorites
-  // - Music sources
-  // - Speaker settings (soundbar, sub, satellite, etc.)
-  // - Sleep timer
-  // - Battery info
+  ///////////////////////////////////////////////////////////////////////////
+  // MUSIC SOURCE DETECTION METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Determine a music source from a URI.
+  ///
+  /// Parameters:
+  ///   - [uri]: The URI representing the music source
+  ///
+  /// Returns:
+  ///   The current source of music.
+  ///
+  /// Possible return values are:
+  ///
+  /// * `'NONE'` -- speaker has no music to play.
+  /// * `'LIBRARY'` -- speaker is playing queued titles from the music library.
+  /// * `'RADIO'` -- speaker is playing radio.
+  /// * `'WEB_FILE'` -- speaker is playing a music file via http/https.
+  /// * `'LINE_IN'` -- speaker is playing music from line-in.
+  /// * `'TV'` -- speaker is playing input from TV.
+  /// * `'AIRPLAY'` -- speaker is playing from AirPlay.
+  /// * `'SPOTIFY_CONNECT'` -- speaker is playing from Spotify Connect.
+  /// * `'UNKNOWN'` -- any other input.
+  static String musicSourceFromUri(String uri) {
+    for (final entry in sources.entries) {
+      if (RegExp(entry.key).hasMatch(uri)) {
+        return entry.value;
+      }
+    }
+    return musicSrcUnknown;
+  }
+
+  /// The current music source (radio, TV, line-in, etc.).
+  ///
+  /// Possible return values are the same as used in [musicSourceFromUri].
+  Future<String> get musicSource async {
+    final response = await avTransport.sendCommand(
+      'GetPositionInfo',
+      args: [MapEntry('InstanceID', 0)],
+    );
+    return musicSourceFromUri(response['TrackURI'] ?? '');
+  }
+
+  /// Is the speaker playing radio?
+  Future<bool> get isPlayingRadio async {
+    final source = await musicSource;
+    return source == musicSrcRadio;
+  }
+
+  /// Is the speaker playing from line-in?
+  Future<bool> get isPlayingLineIn async {
+    final source = await musicSource;
+    return source == musicSrcLineIn;
+  }
+
+  /// Is the speaker playing from TV?
+  Future<bool> get isPlayingTv async {
+    final source = await musicSource;
+    return source == musicSrcTv;
+  }
+
+  /// Switch the playbar speaker's input to TV.
+  Future<void> switchToTv() async {
+    final speakerUid = await uid;
+    await avTransport.sendCommand(
+      'SetAVTransportURI',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('CurrentURI', 'x-sonos-htastream:$speakerUid:spdif'),
+        MapEntry('CurrentURIMetaData', ''),
+      ],
+    );
+  }
+
+  /// Switch to line-in input.
+  Future<void> switchToLineIn() async {
+    final speakerUid = await uid;
+    await avTransport.sendCommand(
+      'SetAVTransportURI',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('CurrentURI', 'x-rincon-stream:$speakerUid'),
+        MapEntry('CurrentURIMetaData', ''),
+      ],
+    );
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // SLEEP TIMER AND BATTERY METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Sets the sleep timer.
+  ///
+  /// Parameters:
+  ///   - [sleepTimeSeconds]: How long to wait before turning off speaker in
+  ///     seconds, null to cancel a sleep timer. Maximum value of 86399.
+  ///
+  /// Throws:
+  ///   - [SoCoException]: Upon errors interacting with Sonos controller
+  ///   - [ArgumentError]: Invalid argument/syntax errors
+  ///
+  /// Note: A value of null for sleepTimeSeconds is valid, and needs to be
+  /// preserved distinctly separate from 0. 0 means go to sleep now, which
+  /// will immediately start the sound tapering, while null means cancel the
+  /// current timer.
+  Future<void> setSleepTimer(int? sleepTimeSeconds) async {
+    try {
+      String sleepTime;
+      if (sleepTimeSeconds == null) {
+        sleepTime = '';
+      } else {
+        if (sleepTimeSeconds < 0 || sleepTimeSeconds > 86399) {
+          throw ArgumentError(
+            'invalid sleep_time_seconds, must be integer value between 0 and 86399 inclusive or null',
+          );
+        }
+        // Format as HH:MM:SS
+        final duration = Duration(seconds: sleepTimeSeconds);
+        final hours = duration.inHours;
+        final minutes = duration.inMinutes.remainder(60);
+        final seconds = duration.inSeconds.remainder(60);
+        sleepTime = '${hours.toString().padLeft(2, '0')}:'
+            '${minutes.toString().padLeft(2, '0')}:'
+            '${seconds.toString().padLeft(2, '0')}';
+      }
+
+      await avTransport.sendCommand(
+        'ConfigureSleepTimer',
+        args: [
+          MapEntry('InstanceID', 0),
+          MapEntry('NewSleepTimerDuration', sleepTime),
+        ],
+      );
+    } on SoCoUPnPException catch (err) {
+      if (err.toString().contains('Error 402 received')) {
+        throw ArgumentError(
+          'invalid sleep_time_seconds, must be integer value between 0 and 86399 inclusive or null',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  /// Retrieves remaining sleep time, if any.
+  ///
+  /// Returns:
+  ///   Number of seconds left in timer. If there is no sleep timer currently
+  ///   set it will return null.
+  Future<int?> getSleepTimer() async {
+    final resp = await avTransport.sendCommand(
+      'GetRemainingSleepTimerDuration',
+      args: [MapEntry('InstanceID', 0)],
+    );
+
+    final remaining = resp['RemainingSleepTimerDuration'];
+    if (remaining != null && remaining.isNotEmpty) {
+      final parts = remaining.split(':');
+      return int.parse(parts[0]) * 3600 +
+          int.parse(parts[1]) * 60 +
+          int.parse(parts[2]);
+    }
+    return null;
+  }
+
+  /// Get battery information for a Sonos speaker.
+  ///
+  /// Obtains battery information for Sonos speakers that report it. This only
+  /// applies to Sonos Move speakers at the time of writing.
+  ///
+  /// This method may only work on Sonos 'S2' systems.
+  ///
+  /// Parameters:
+  ///   - [timeout]: The timeout to use when making the HTTP request.
+  ///
+  /// Returns:
+  ///   A map containing battery status data.
+  ///
+  ///   Example return value:
+  ///   ```
+  ///   {
+  ///     'Health': 'GREEN',
+  ///     'Level': 100,
+  ///     'Temperature': 'NORMAL',
+  ///     'PowerSource': 'SONOS_CHARGING_RING'
+  ///   }
+  ///   ```
+  ///
+  /// Throws:
+  ///   - [NotSupportedException]: If the speaker does not report battery
+  ///     information.
+  ///   - [Exception]: If the HTTP connection failed, or returned an
+  ///     unsuccessful status code or timed out.
+  Future<Map<String, dynamic>> getBatteryInfo({
+    Duration timeout = const Duration(seconds: 3),
+  }) async {
+    try {
+      final url = 'http://$ipAddress:1400/status/batterystatus';
+      final response = await http.get(Uri.parse(url)).timeout(timeout);
+
+      if (response.statusCode != 200) {
+        throw Exception('HTTP request failed with status ${response.statusCode}');
+      }
+
+      // Parse XML response
+      final document = XmlDocument.parse(response.body);
+      final batteryInfo = <String, dynamic>{};
+
+      // Navigate to battery status data
+      final zpInfo = document.findAllElements('ZPSupportInfo').firstOrNull;
+      if (zpInfo == null) {
+        throw NotSupportedException('Battery information not supported');
+      }
+
+      final localBatteryStatus =
+          zpInfo.findElements('LocalBatteryStatus').firstOrNull;
+      if (localBatteryStatus == null) {
+        throw NotSupportedException('Battery information not supported');
+      }
+
+      for (final dataElement in localBatteryStatus.findElements('Data')) {
+        final name = dataElement.getAttribute('name');
+        final text = dataElement.innerText;
+        if (name != null) {
+          batteryInfo[name] = text;
+        }
+      }
+
+      // Convert Level to int if present
+      if (batteryInfo.containsKey('Level')) {
+        try {
+          batteryInfo['Level'] = int.parse(batteryInfo['Level']);
+        } catch (_) {
+          // Leave as string if conversion fails
+        }
+      }
+
+      return batteryInfo;
+    } on TimeoutException {
+      throw TimeoutException('Battery info request timed out');
+    } catch (e) {
+      if (e is NotSupportedException) {
+        rethrow;
+      }
+      throw NotSupportedException('Battery information not supported: $e');
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // SPEAKER SETTINGS METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// The white Sonos status light between the mute button and the volume up
+  /// button on the speaker.
+  ///
+  /// Returns true if on, otherwise false.
+  Future<bool> get statusLight async {
+    final result = await deviceProperties.sendCommand('GetLEDState');
+    final ledState = result['CurrentLEDState'];
+    return ledState == 'On';
+  }
+
+  /// Set the status light on or off.
+  Future<void> setStatusLight(bool on) async {
+    final state = on ? 'On' : 'Off';
+    await deviceProperties.sendCommand(
+      'SetLEDState',
+      args: [MapEntry('DesiredLEDState', state)],
+    );
+  }
+
+  /// Whether the control buttons on the speaker are enabled.
+  ///
+  /// Returns true if buttons are enabled, false if disabled/locked.
+  Future<bool> get buttonsEnabled async {
+    final result = await deviceProperties.sendCommand('GetButtonLockState');
+    final lockState = result['CurrentButtonLockState'];
+    return lockState == 'Off';
+  }
+
+  /// Enable or disable the control buttons on the speaker.
+  Future<void> setButtonsEnabled(bool enabled) async {
+    final state = enabled ? 'Off' : 'On'; // Note: Off means unlocked
+    await deviceProperties.sendCommand(
+      'SetButtonLockState',
+      args: [MapEntry('DesiredButtonLockState', state)],
+    );
+  }
+
+  // TODO: Implement remaining methods (~60+ methods still to port)
+  // - Queue management (getQueue, addToQueue, removeFromQueue, etc.)
+  // - Group management (join, unjoin, partymode, allGroups, etc.)
+  // - Playlists and favorites (~20 methods)
+  // - Advanced speaker settings (soundbar, sub, satellite, ~25 methods)
+  // - Loudness, balance, audio delay, night mode, dialog mode, etc.
+  // - Surround settings, sub settings
+  // - Voice assistant settings
+  // - Stereo pair creation/separation
   // - Miscellaneous features
 }
