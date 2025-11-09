@@ -3,14 +3,15 @@
 /// They may be modified during runtime to adjust SoCo behavior.
 library;
 
-/// The class type to use when `SoCo` instances are created.
+/// The factory function to use when `SoCo` instances are created.
 ///
-/// Specify the actual callable class type here. If `null`,
-/// the default SoCo class will be used. Must be set before any instances are
-/// created, or it will have unpredictable effects.
+/// Specify a factory function here. If `null`, the default SoCo class will be
+/// used. Must be set before any instances are created, or it will have
+/// unpredictable effects.
 ///
 /// Note: In Dart, this is primarily used for dependency injection and testing.
-Type? socoClass;
+/// The function signature should be: SoCo Function(String ipAddress)
+dynamic Function(String)? socoClassFactory;
 
 /// Is the cache enabled?
 ///
@@ -67,11 +68,34 @@ double? requestTimeout = 20.0;
 /// using functions that interrogate system state.
 bool zgtEventFallback = true;
 
+/// Create a SoCo instance using the configured factory or default.
+///
+/// This function will use [socoClassFactory] if set, otherwise it will use
+/// the default SoCo class constructor.
+///
+/// Parameters:
+///   - [ipAddress]: The IP address of the Sonos device.
+///
+/// Returns:
+///   A SoCo instance (or subclass if factory is configured).
+dynamic getSocoInstance(String ipAddress) {
+  if (socoClassFactory != null) {
+    return socoClassFactory!(ipAddress);
+  }
+  // Import SoCo here to avoid circular dependency
+  // The factory will be resolved at runtime
+  // For now, we'll throw an error - discovery will need to import SoCo directly
+  throw UnimplementedError(
+    'getSocoInstance should not be called from config. '
+    'Import SoCo directly in discovery module.',
+  );
+}
+
 /// Reset all configuration values to their defaults.
 ///
 /// This is primarily useful for testing.
 void resetConfig() {
-  socoClass = null;
+  socoClassFactory = null;
   cacheEnabled = true;
   eventAdvertiseIp = null;
   eventListenerIp = null;

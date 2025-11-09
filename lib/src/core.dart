@@ -239,6 +239,9 @@ class SoCo {
   /// Static cache for zone group states
   static final Map<String, ZoneGroupState> zoneGroupStates = {};
 
+  /// Get all SoCo instances (for discovery purposes)
+  static Map<String, SoCo> get instances => Map.unmodifiable(_socoInstances);
+
   /// The speaker's IP address
   final String ipAddress;
 

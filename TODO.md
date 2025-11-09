@@ -61,7 +61,12 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
     - ✅ Stereo pairs (createStereoPair, separateStereoPair)
     - ⏳ Playlists/favorites (~20 methods - requires music_library module)
     - ⏳ Voice assistant (micEnabled placeholder - needs full implementation)
-13. **discovery.py** → `lib/src/discovery.dart` - Device discovery
+13. ✅ **discovery.py** → `lib/src/discovery.dart` - Device discovery (769→710 lines)
+    - ✅ UDP multicast discovery (SSDP protocol)
+    - ✅ Network scanning fallback
+    - ✅ Helper functions (anySoco, byName, scanNetwork, etc.)
+    - ✅ Network interface detection
+    - ✅ Multi-household support
 14. **alarms.py** → `lib/src/alarms.dart`
 15. **groups.py** → `lib/src/groups.dart`
 16. **music_library.py** → `lib/src/music_library.dart`
@@ -215,9 +220,9 @@ Each major milestone should have its own commit:
 
 ## Current Status
 **Last Updated**: 2025-11-09
-**Current Phase**: Phase 2 - Core Module Porting (CORE COMPLETE!)
-**Completed**: 12 of 18 core modules (67%)
-**Next**: Port discovery.py (device discovery) or alarms.py
+**Current Phase**: Phase 2 - Core Module Porting (DISCOVERY COMPLETE!)
+**Completed**: 13 of 18 core modules (72%)
+**Next**: Port alarms.py, groups.py, or music_library.py
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -231,3 +236,4 @@ Each major milestone should have its own commit:
 9. ✅ Add queue management methods (getQueue, addUriToQueue, etc.)
 10. ✅ Add advanced speaker settings (loudness, balance, surround, subwoofer)
 11. ✅ Complete core module with all remaining methods (120+ methods total)
+12. ✅ Port discovery module with UDP multicast and network scanning

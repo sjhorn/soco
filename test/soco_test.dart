@@ -1,16 +1,15 @@
-import 'package:soco/soco.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('A group of tests', () {
-    final awesome = Awesome();
-
+  group('SoCo Tests', () {
     setUp(() {
       // Additional setup goes here.
     });
 
-    test('First Test', () {
-      expect(awesome.isAwesome, isTrue);
+    test('TODO: Add tests', () {
+      // TODO: Add tests for SoCo functionality
+      // For now, this is a placeholder
+      expect(true, isTrue);
     });
   });
 }
