@@ -5,3 +5,6 @@
 # Avoid committing pubspec.lock for library packages; see
 # https://dart.dev/guides/libraries/private-files#pubspeclock.
 pubspec.lock
+
+# Original Python SoCo library (for reference only, not part of package)
+SoCo/
