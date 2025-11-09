@@ -44,7 +44,16 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
 9. ✅ **data_structures_entry.py** → `lib/src/data_structures_entry.dart` (51 lines)
 10. ✅ **data_structure_quirks.py** → `lib/src/data_structure_quirks.dart` (43 lines)
 11. ✅ **ms_data_structures.py** → `lib/src/ms_data_structures.dart` (682→598 lines)
-12. **core.py** → `lib/src/core.dart` - Main SoCo class (CRITICAL, 3047 lines!)
+12. 🔄 **core.py** → `lib/src/core.dart` - Main SoCo class (3047→1230 lines, ~40% complete)
+    - ✅ Skeleton, constants, singleton pattern
+    - ✅ Playback control (play, pause, stop, seek, next, previous, etc.)
+    - ✅ Volume/audio (volume, mute, bass, treble, rampToVolume)
+    - ✅ Play mode (shuffle, repeat, crossfade)
+    - ✅ Transport info (getCurrentTrackInfo, getCurrentMediaInfo, etc.)
+    - ⏳ Queue management (getQueue, addToQueue, removeFromQueue, etc.)
+    - ⏳ Group management (join, unjoin, partymode, allGroups, etc.)
+    - ⏳ Playlists/favorites (~20 methods)
+    - ⏳ Speaker settings (soundbar, sub, satellite, ~30 methods)
 13. **discovery.py** → `lib/src/discovery.dart` - Device discovery
 14. **alarms.py** → `lib/src/alarms.dart`
 15. **groups.py** → `lib/src/groups.dart`
@@ -200,8 +209,8 @@ Each major milestone should have its own commit:
 ## Current Status
 **Last Updated**: 2025-11-09
 **Current Phase**: Phase 2 - Core Module Porting
-**Completed**: 11 of 18 core modules (61%)
-**Next**: Core SoCo class (core.py, 3047 lines - requires dedicated session)
+**Completed**: 11.4 of 18 core modules (63%)
+**Next**: Continue core.py porting (queue, groups, playlists - ~100 methods remaining)
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -210,3 +219,4 @@ Each major milestone should have its own commit:
 4. ✅ Port services module (UPnP service abstractions)
 5. ✅ Port all data structures modules (DIDL-Lite metadata)
 6. ✅ Port music service data structures (MS plugins)
+7. ✅ Port core module with 40+ methods (playback, volume, transport info)
