@@ -1000,6 +1000,14 @@ class SoCo {
         .replaceAll("'", '&apos;');
   }
 
+  /// Convert camelCase to snake_case
+  String _camelToUnderscore(String text) {
+    return text.replaceAllMapped(
+      RegExp(r'[A-Z]'),
+      (match) => '_${match.group(0)!.toLowerCase()}',
+    ).replaceFirst(RegExp(r'^_'), '');
+  }
+
   ///////////////////////////////////////////////////////////////////////////
   // PLAY MODE AND TRANSPORT INFO METHODS
   ///////////////////////////////////////////////////////////////////////////
@@ -1464,6 +1472,165 @@ class SoCo {
       }
       throw NotSupportedException('Battery information not supported: $e');
     }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // QUEUE MANAGEMENT METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Get information about the queue.
+  ///
+  /// Parameters:
+  ///   - [start]: Starting number of returned matches
+  ///   - [maxItems]: Maximum number of returned matches
+  ///   - [fullAlbumArtUri]: If the album art URI should include the IP address
+  ///
+  /// Returns:
+  ///   A Queue object containing queue items and metadata
+  ///
+  /// Note: This method is heavily based on Sam Soffes' (aka soffes) ruby
+  /// implementation.
+  Future<dynamic> getQueue({
+    int start = 0,
+    int maxItems = 100,
+    bool fullAlbumArtUri = false,
+  }) async {
+    final response = await contentDirectory.sendCommand(
+      'Browse',
+      args: [
+        MapEntry('ObjectID', 'Q:0'),
+        MapEntry('BrowseFlag', 'BrowseDirectChildren'),
+        MapEntry('Filter', '*'),
+        MapEntry('StartingIndex', start),
+        MapEntry('RequestedCount', maxItems),
+        MapEntry('SortCriteria', ''),
+      ],
+    );
+
+    // final result = response['Result']; // TODO: Parse this when implementing Queue
+    final metadata = <String, int>{};
+
+    // Convert metadata to underscore notation
+    for (final tag in ['NumberReturned', 'TotalMatches', 'UpdateID']) {
+      if (response.containsKey(tag)) {
+        final key = _camelToUnderscore(tag);
+        metadata[key] = int.parse(response[tag] ?? '0');
+      }
+    }
+
+    // TODO: Parse DIDL string and create Queue object
+    // For now, return a map with metadata
+    // This requires implementing fromDidlString and Queue class properly
+    return {
+      'items': [], // Will be populated when fromDidlString is implemented
+      'metadata': metadata,
+    };
+  }
+
+  /// Size of the queue.
+  Future<int> get queueSize async {
+    final response = await contentDirectory.sendCommand(
+      'Browse',
+      args: [
+        MapEntry('ObjectID', 'Q:0'),
+        MapEntry('BrowseFlag', 'BrowseMetadata'),
+        MapEntry('Filter', '*'),
+        MapEntry('StartingIndex', 0),
+        MapEntry('RequestedCount', 1),
+        MapEntry('SortCriteria', ''),
+      ],
+    );
+
+    final resultXml = response['Result'];
+    if (resultXml == null || resultXml.isEmpty) {
+      return 0;
+    }
+
+    try {
+      final document = XmlDocument.parse(resultXml);
+      final container = document.findAllElements('container').firstOrNull;
+      if (container != null) {
+        final childCount = container.getAttribute('childCount');
+        if (childCount != null) {
+          return int.parse(childCount);
+        }
+      }
+    } catch (e) {
+      _log.warning('Failed to parse queue size: $e');
+    }
+
+    return 0;
+  }
+
+  /// Add a URI to the queue.
+  ///
+  /// Parameters:
+  ///   - [uri]: URI of the item to add
+  ///   - [position]: The index (1-based) at which the URI should be added.
+  ///     Default is 0 (add at the end of the queue).
+  ///   - [asNext]: Whether this URI should be played as the next track in
+  ///     shuffle mode. This only works if play_mode=SHUFFLE.
+  ///
+  /// Returns:
+  ///   The index of the new item in the queue.
+  Future<int> addUriToQueue(
+    String uri, {
+    int position = 0,
+    bool asNext = false,
+  }) async {
+    // Create a minimal DIDL resource
+    // TODO: Use proper DidlResource and DidlObject when fully implemented
+    final metadata = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" '
+        'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
+        'xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" '
+        'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
+        '<item id="-1" parentID="-1" restricted="true">'
+        '<res protocolInfo="x-rincon-playlist:*:*:*">$uri</res>'
+        '<upnp:class>object.item</upnp:class>'
+        '<dc:title></dc:title>'
+        '</item></DIDL-Lite>';
+
+    final response = await avTransport.sendCommand(
+      'AddURIToQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EnqueuedURI', uri),
+        MapEntry('EnqueuedURIMetaData', metadata),
+        MapEntry('DesiredFirstTrackNumberEnqueued', position),
+        MapEntry('EnqueueAsNext', asNext ? 1 : 0),
+      ],
+    );
+
+    final qnumber = response['FirstTrackNumberEnqueued'];
+    return int.parse(qnumber ?? '0');
+  }
+
+  /// Remove a track from the queue by index.
+  ///
+  /// The index number is required as an argument, where the first index is 0.
+  ///
+  /// Parameters:
+  ///   - [index]: The (0-based) index of the track to remove
+  Future<void> removeFromQueue(int index) async {
+    const updid = '0';
+    final objid = 'Q:0/${index + 1}';
+
+    await avTransport.sendCommand(
+      'RemoveTrackFromQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('ObjectID', objid),
+        MapEntry('UpdateID', updid),
+      ],
+    );
+  }
+
+  /// Remove all tracks from the queue.
+  Future<void> clearQueue() async {
+    await avTransport.sendCommand(
+      'RemoveAllTracksFromQueue',
+      args: [MapEntry('InstanceID', 0)],
+    );
   }
 
   ///////////////////////////////////////////////////////////////////////////
