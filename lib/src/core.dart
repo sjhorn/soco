@@ -467,17 +467,6 @@ class SoCo {
     return modelName?.endsWith(arcUltraProductName) ?? false;
   }
 
-  // Placeholder for zoneGroupState - will need to implement
-  ZoneGroupState get zoneGroupState {
-    // TODO: Implement zone group state management
-    throw UnimplementedError('zoneGroupState not yet implemented');
-  }
-
-  // Placeholder for visibleZones - will need to implement
-  Future<List<SoCo>> get visibleZones async {
-    // TODO: Implement visible zones
-    throw UnimplementedError('visibleZones not yet implemented');
-  }
 
   /// Get information about the Sonos speaker.
   ///
@@ -2035,14 +2024,370 @@ class SoCo {
     );
   }
 
-  // TODO: Implement remaining methods (~40+ methods still to port)
-  // - Queue management (getQueue, addToQueue, removeFromQueue, etc.)
-  // - Group management (join, unjoin, partymode, allGroups, etc.)
-  // - Playlists and favorites (~20 methods)
-  // - Advanced speaker settings (soundbar, sub, satellite, ~25 methods)
-  // - Loudness, balance, audio delay, night mode, dialog mode, etc.
-  // - Surround settings, sub settings
-  // - Voice assistant settings
-  // - Stereo pair creation/separation
-  // - Miscellaneous features
+  /// Return True if surround full volume is enabled for surround music playback.
+  ///
+  /// If False, playback on surround speakers uses ambient volume.
+  /// Note: does not apply to TV playback.
+  Future<bool?> get surroundFullVolumeEnabled async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundMode'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Toggle surround music playback mode.
+  ///
+  /// True = full volume, False = ambient mode.
+  /// Note: this does not apply to TV playback.
+  Future<void> setSurroundFullVolumeEnabled(bool value) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Surround only supported on soundbars');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundMode'),
+        MapEntry('DesiredValue', value ? 1 : 0),
+      ],
+    );
+  }
+
+  /// Get the relative volume for surround speakers in TV playback mode.
+  ///
+  /// Ranges from -15 to +15.
+  Future<int?> get surroundVolumeTv async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundLevel'),
+      ],
+    );
+    return int.parse(response['CurrentValue'] ?? '0');
+  }
+
+  /// Set the relative volume for surround speakers in TV playback mode.
+  ///
+  /// Range: -15 to +15
+  Future<void> setSurroundVolumeTv(int relativeVolume) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Surround only supported on soundbars');
+    }
+
+    if (relativeVolume < -15 || relativeVolume > 15) {
+      throw ArgumentError('Value must be [-15, 15]');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundLevel'),
+        MapEntry('DesiredValue', relativeVolume),
+      ],
+    );
+  }
+
+  /// Return the relative volume for surround speakers in music mode.
+  ///
+  /// Range: -15 to +15
+  Future<int?> get surroundVolumeMusic async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'MusicSurroundLevel'),
+      ],
+    );
+    return int.parse(response['CurrentValue'] ?? '0');
+  }
+
+  /// Set the relative volume for surround speakers in music mode.
+  ///
+  /// Range: -15 to +15
+  Future<void> setSurroundVolumeMusic(int relativeVolume) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Surround only supported on soundbars');
+    }
+
+    if (relativeVolume < -15 || relativeVolume > 15) {
+      throw ArgumentError('Value must be [-15, 15]');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'MusicSurroundLevel'),
+        MapEntry('DesiredValue', relativeVolume),
+      ],
+    );
+  }
+
+  /// Whether Trueplay is enabled on this device.
+  ///
+  /// Returns true if on, false if off.
+  ///
+  /// Devices that do not support Trueplay, or which do not have a current
+  /// Trueplay calibration, will return null.
+  Future<bool?> get trueplay async {
+    final response = await renderingControl.sendCommand(
+      'GetRoomCalibrationStatus',
+      args: [MapEntry('InstanceID', 0)],
+    );
+
+    if (response['RoomCalibrationAvailable'] == '0') {
+      return null;
+    }
+    return response['RoomCalibrationEnabled'] == '1';
+  }
+
+  /// Toggle the device's TruePlay setting.
+  ///
+  /// Only available to Sonos speakers that have a current Trueplay calibration.
+  Future<void> setTrueplay(bool trueplay) async {
+    final available = await this.trueplay;
+    if (available == null) {
+      throw NotSupportedException(
+        'Trueplay not available or not calibrated on this device',
+      );
+    }
+
+    if (!await isVisible) {
+      throw SoCoNotVisibleException(
+        'Trueplay can only be set on visible devices',
+      );
+    }
+
+    await renderingControl.sendCommand(
+      'SetRoomCalibrationStatus',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('RoomCalibrationEnabled', trueplay ? '1' : '0'),
+      ],
+    );
+  }
+
+  /// Whether the device supports fixed volume output.
+  Future<bool> get supportsFixedVolume async {
+    final response = await renderingControl.sendCommand(
+      'GetSupportsOutputFixed',
+      args: [MapEntry('InstanceID', 0)],
+    );
+    return response['CurrentSupportsFixed'] == '1';
+  }
+
+  /// The device's fixed volume output setting.
+  ///
+  /// Returns true if on, false if off. Only applicable to certain Sonos
+  /// devices (Connect and Port at the time of writing). All other devices
+  /// always return false.
+  Future<bool> get fixedVolume async {
+    final response = await renderingControl.sendCommand(
+      'GetOutputFixed',
+      args: [MapEntry('InstanceID', 0)],
+    );
+    return response['CurrentFixed'] == '1';
+  }
+
+  /// Switch on/off the device's fixed volume output setting.
+  ///
+  /// Only applicable to certain Sonos devices.
+  Future<void> setFixedVolume(bool fixedVolume) async {
+    try {
+      await renderingControl.sendCommand(
+        'SetOutputFixed',
+        args: [
+          MapEntry('InstanceID', 0),
+          MapEntry('DesiredFixed', fixedVolume ? '1' : '0'),
+        ],
+      );
+    } on SoCoUPnPException catch (error) {
+      throw NotSupportedException(
+        'Fixed volume not supported on this device: $error',
+      );
+    }
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // GROUP MANAGEMENT METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Return the associated ZoneGroupState instance.
+  ZoneGroupState get zoneGroupState {
+    // Note: This uses a synchronous access pattern
+    // householdId must be fetched async first if needed
+    final hid = _householdId ?? 'default';
+    var zgs = SoCo.zoneGroupStates[hid];
+    if (zgs == null) {
+      zgs = ZoneGroupState();
+      SoCo.zoneGroupStates[hid] = zgs;
+    }
+    return zgs;
+  }
+
+  /// All available groups.
+  Future<Set<dynamic>> get allGroups async {
+    await zoneGroupState.poll(this);
+    return {...zoneGroupState.groups};
+  }
+
+  /// The Zone Group of which this device is a member.
+  ///
+  /// Returns null if this zone is a slave in a stereo pair.
+  Future<dynamic> get group async {
+    final groups = await allGroups;
+    for (final group in groups) {
+      if (group.contains(this)) {
+        return group;
+      }
+    }
+    return null;
+  }
+
+  /// All available zones.
+  Future<Set<SoCo>> get allZones async {
+    await zoneGroupState.poll(this);
+    return {...zoneGroupState.allZones};
+  }
+
+  /// All visible zones.
+  Future<Set<SoCo>> get visibleZones async {
+    await zoneGroupState.poll(this);
+    return {...zoneGroupState.visibleZones};
+  }
+
+  /// Put all the speakers in the network in the same group (Party Mode).
+  ///
+  /// This blog shows the initial research responsible for this:
+  /// http://blog.travelmarx.com/2010/06/exploring-sonos-via-upnp.html
+  ///
+  /// The trick seems to be to tell each speaker which to join.
+  Future<void> partymode() async {
+    final zones = await visibleZones;
+    for (final zone in zones) {
+      if (zone != this) {
+        await zone.join(this);
+      }
+    }
+  }
+
+  /// Join this speaker to another "master" speaker.
+  Future<void> join(SoCo master) async {
+    final masterUid = await master.uid;
+    await avTransport.sendCommand(
+      'SetAVTransportURI',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('CurrentURI', 'x-rincon:$masterUid'),
+        MapEntry('CurrentURIMetaData', ''),
+      ],
+    );
+    zoneGroupState.clearCache();
+  }
+
+  /// Remove this speaker from a group.
+  ///
+  /// Seems to work ok even if you remove what was previously the group master
+  /// from its own group. If the speaker was not in a group also returns ok.
+  Future<void> unjoin() async {
+    await avTransport.sendCommand(
+      'BecomeCoordinatorOfStandaloneGroup',
+      args: [MapEntry('InstanceID', 0)],
+    );
+    zoneGroupState.clearCache();
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // VOICE ASSISTANT AND STEREO PAIR METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Whether a voice service is configured on this device.
+  Future<bool> get voiceServiceConfigured async {
+    // This would require checking voice config state
+    // Placeholder implementation
+    return false; // TODO: Implement voice service check
+  }
+
+  /// Whether the microphone is enabled on this device.
+  Future<bool?> get micEnabled async {
+    // This would require checking mic state
+    // Placeholder implementation
+    return null; // TODO: Implement mic enabled check
+  }
+
+  /// Set the microphone enabled state.
+  Future<void> setMicEnabled(bool enabled) async {
+    // TODO: Implement mic enabled setter
+    throw UnimplementedError('setMicEnabled not yet implemented');
+  }
+
+  /// Create a stereo pair.
+  ///
+  /// This speaker becomes the master, left-hand speaker of the stereo pair.
+  /// The [rhSlaveSpeaker] becomes the right-hand speaker.
+  ///
+  /// Note that this operation will succeed on dissimilar speakers, unlike
+  /// when using the official Sonos apps.
+  Future<void> createStereoPair(SoCo rhSlaveSpeaker) async {
+    final masterUid = await uid;
+    final slaveUid = await rhSlaveSpeaker.uid;
+
+    await deviceProperties.sendCommand(
+      'AddBondedZones',
+      args: [
+        MapEntry('ChannelMapSet', '$masterUid:LF,LF;$slaveUid:RF,RF'),
+      ],
+    );
+    zoneGroupState.clearCache();
+  }
+
+  /// Separate a stereo pair.
+  ///
+  /// This speaker must be part of a stereo pair for this to work.
+  Future<void> separateStereoPair() async {
+    final masterUid = await uid;
+
+    await deviceProperties.sendCommand(
+      'RemoveBondedZones',
+      args: [
+        MapEntry('ChannelMapSet', '$masterUid:LF,LF'),
+        MapEntry('KeepGrouped', '0'),
+      ],
+    );
+    zoneGroupState.clearCache();
+  }
+
+  // TODO: Implement playlist and favorites methods (~20 methods)
+  // These require more complex integration with music_library
+  // - getSonosPlaylists()
+  // - createSonosPlaylist()
+  // - removeSonosPlaylist()
+  // - addItemToSonosPlaylist()
+  // - reorderSonosPlaylist()
+  // - clearSonosPlaylist()
+  // - moveInSonosPlaylist()
+  // - removeFromSonosPlaylist()
+  // - getSonosPlaylistByAttr()
+  // - getFavoriteRadioShows()
+  // - getFavoriteRadioStations()
+  // - getSonosFavorites()
 }
