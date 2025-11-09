@@ -391,6 +391,11 @@ class SoCo {
     return _isSatellite;
   }
 
+  /// The parent device if this zone is a satellite, null otherwise.
+  SoCo? get satelliteParent {
+    return speakerInfo['_satelliteParent'] as SoCo?;
+  }
+
   /// Is this zone configured with satellites in a home theater setup?
   ///
   /// Will only return true on the primary device in a home theater configuration.

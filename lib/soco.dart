@@ -50,3 +50,4 @@ export 'src/cache.dart';
 // Music library and zone state
 export 'src/music_library.dart';
 export 'src/zonegroupstate.dart';
+export 'src/groups.dart';

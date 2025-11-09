@@ -67,11 +67,21 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
     - ✅ Helper functions (anySoco, byName, scanNetwork, etc.)
     - ✅ Network interface detection
     - ✅ Multi-household support
-14. **alarms.py** → `lib/src/alarms.dart`
-15. **groups.py** → `lib/src/groups.dart`
-16. **music_library.py** → `lib/src/music_library.dart`
-17. **snapshot.py** → `lib/src/snapshot.dart`
-18. **zonegroupstate.py** → `lib/src/zonegroupstate.dart`
+14. ✅ **groups.py** → `lib/src/groups.dart` - Zone groups (200→220 lines)
+    - ✅ ZoneGroup class with iteration support
+    - ✅ Group volume and mute control
+    - ✅ Group labels (label, shortLabel)
+    - ✅ Relative volume adjustments
+15. ✅ **zonegroupstate.py** → `lib/src/zonegroupstate.dart` - Zone group state management (400→355 lines)
+    - ✅ XML payload processing and caching
+    - ✅ Polling with cache timeout
+    - ✅ XML normalization for comparison
+    - ✅ Zone and group discovery
+    - ✅ Satellite and coordinator detection
+    - ⏳ Event-based fallback (requires events module)
+16. **alarms.py** → `lib/src/alarms.dart`
+17. **music_library.py** → `lib/src/music_library.dart`
+18. **snapshot.py** → `lib/src/snapshot.dart`
 
 ### 2.1 Events System
 - [ ] **events_base.py** → `lib/src/events/events_base.dart`
@@ -220,9 +230,9 @@ Each major milestone should have its own commit:
 
 ## Current Status
 **Last Updated**: 2025-11-09
-**Current Phase**: Phase 2 - Core Module Porting (DISCOVERY COMPLETE!)
-**Completed**: 13 of 18 core modules (72%)
-**Next**: Port alarms.py, groups.py, or music_library.py
+**Current Phase**: Phase 2 - Core Module Porting (GROUPS & ZGS COMPLETE!)
+**Completed**: 15 of 18 core modules (83%)
+**Next**: Port alarms.py, music_library.py, or snapshot.py
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -237,3 +247,4 @@ Each major milestone should have its own commit:
 10. ✅ Add advanced speaker settings (loudness, balance, surround, subwoofer)
 11. ✅ Complete core module with all remaining methods (120+ methods total)
 12. ✅ Port discovery module with UDP multicast and network scanning
+13. ✅ Port groups and zonegroupstate modules with XML processing
