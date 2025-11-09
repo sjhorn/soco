@@ -43,8 +43,8 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
 8. ✅ **data_structures.py** → `lib/src/data_structures.dart` - Core data models (1325→675 lines)
 9. ✅ **data_structures_entry.py** → `lib/src/data_structures_entry.dart` (51 lines)
 10. ✅ **data_structure_quirks.py** → `lib/src/data_structure_quirks.dart` (43 lines)
-11. **ms_data_structures.py** → `lib/src/ms_data_structures.dart`
-12. **core.py** → `lib/src/core.dart` - Main SoCo class (CRITICAL)
+11. ✅ **ms_data_structures.py** → `lib/src/ms_data_structures.dart` (682→598 lines)
+12. **core.py** → `lib/src/core.dart` - Main SoCo class (CRITICAL, 3047 lines!)
 13. **discovery.py** → `lib/src/discovery.dart` - Device discovery
 14. **alarms.py** → `lib/src/alarms.dart`
 15. **groups.py** → `lib/src/groups.dart`
@@ -200,8 +200,8 @@ Each major milestone should have its own commit:
 ## Current Status
 **Last Updated**: 2025-11-09
 **Current Phase**: Phase 2 - Core Module Porting
-**Completed**: 10 of 18 core modules (56%)
-**Next**: Core SoCo class (core.py) - the main user-facing API
+**Completed**: 11 of 18 core modules (61%)
+**Next**: Core SoCo class (core.py, 3047 lines - requires dedicated session)
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -209,3 +209,4 @@ Each major milestone should have its own commit:
 3. ✅ Port cache and SOAP modules
 4. ✅ Port services module (UPnP service abstractions)
 5. ✅ Port all data structures modules (DIDL-Lite metadata)
+6. ✅ Port music service data structures (MS plugins)
