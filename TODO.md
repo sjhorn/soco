@@ -1,0 +1,202 @@
+# SoCo Dart Port - TODO List
+
+## Project Goal
+Port the Python SoCo library to Dart, maintaining API compatibility and functionality while following Dart best practices.
+
+## Progress Overview
+- **Total Python Source Files**: 34
+- **Total Python Test Files**: 20
+- **Status**: Initial Setup
+
+---
+
+## Phase 1: Project Setup & Foundation ✓
+
+### 1.1 Repository Structure
+- [x] Initialize Dart package structure (`dart create -t package`)
+- [ ] Copy LICENSE from SoCo (MIT License)
+- [ ] Create comprehensive README.md based on SoCo README.rst
+- [ ] Update pubspec.yaml with proper metadata
+- [ ] Configure analysis_options.yaml for strict linting
+
+### 1.2 Core Dependencies Analysis
+- [ ] Review SoCo's requirements.txt
+- [ ] Identify Dart equivalents for Python dependencies:
+  - HTTP client (requests → http or dio)
+  - XML parsing (lxml → xml)
+  - Network discovery (ifaddr, etc.)
+  - Async/event handling
+- [ ] Add dependencies to pubspec.yaml
+
+---
+
+## Phase 2: Core Module Porting
+
+### Priority Order (based on dependencies):
+1. **exceptions.py** → `lib/src/exceptions.dart` - Foundation error handling
+2. **config.py** → `lib/src/config.dart` - Configuration constants
+3. **xml.py** → `lib/src/xml.dart` - XML utilities
+4. **utils.py** → `lib/src/utils.dart` - General utilities
+5. **cache.py** → `lib/src/cache.dart` - Caching mechanisms
+6. **soap.py** → `lib/src/soap.dart` - SOAP protocol handling
+7. **services.py** → `lib/src/services.dart` - Service abstractions
+8. **data_structures.py** → `lib/src/data_structures.dart` - Core data models
+9. **data_structures_entry.py** → `lib/src/data_structures_entry.dart`
+10. **data_structure_quirks.py** → `lib/src/data_structure_quirks.dart`
+11. **ms_data_structures.py** → `lib/src/ms_data_structures.dart`
+12. **core.py** → `lib/src/core.dart` - Main SoCo class (CRITICAL)
+13. **discovery.py** → `lib/src/discovery.dart` - Device discovery
+14. **alarms.py** → `lib/src/alarms.dart`
+15. **groups.py** → `lib/src/groups.dart`
+16. **music_library.py** → `lib/src/music_library.dart`
+17. **snapshot.py** → `lib/src/snapshot.dart`
+18. **zonegroupstate.py** → `lib/src/zonegroupstate.dart`
+
+### 2.1 Events System
+- [ ] **events_base.py** → `lib/src/events/events_base.dart`
+- [ ] **events.py** → `lib/src/events/events.dart` (async/Stream-based)
+- [ ] Skip events_asyncio.py (already async in Dart)
+- [ ] Skip events_twisted.py (not applicable to Dart)
+
+### 2.2 Music Services Subpackage
+- [ ] **music_services/__init__.py** → `lib/src/music_services/music_services.dart`
+- [ ] **music_services/accounts.py** → `lib/src/music_services/accounts.dart`
+- [ ] **music_services/data_structures.py** → `lib/src/music_services/data_structures.dart`
+- [ ] **music_services/music_service.py** → `lib/src/music_services/music_service.dart`
+- [ ] **music_services/token_store.py** → `lib/src/music_services/token_store.dart`
+
+### 2.3 Plugins Subpackage
+- [ ] **plugins/__init__.py** → `lib/src/plugins/plugins.dart`
+- [ ] **plugins/example.py** → `lib/src/plugins/example.dart`
+- [ ] **plugins/plex.py** → `lib/src/plugins/plex.dart`
+- [ ] **plugins/sharelink.py** → `lib/src/plugins/sharelink.dart`
+- [ ] **plugins/spotify.py** → `lib/src/plugins/spotify.dart`
+- [ ] **plugins/wimp.py** → `lib/src/plugins/wimp.dart`
+
+### 2.4 Main Package Export
+- [ ] **__init__.py** → `lib/soco.dart` - Main library export file
+
+---
+
+## Phase 3: Test Porting
+
+### Test Files (match to source files)
+- [ ] Port unit tests from SoCo/tests/
+- [ ] Create test fixtures and mocks
+- [ ] Ensure tests pass without real Sonos devices
+- [ ] Create integration test framework
+
+**Test Priority**:
+1. exceptions_test.dart
+2. xml_test.dart
+3. utils_test.dart
+4. soap_test.dart
+5. data_structures_test.dart
+6. core_test.dart (most important)
+7. discovery_test.dart
+8. ... (others)
+
+---
+
+## Phase 4: Examples Porting
+
+### Examples to Port
+- [ ] Basic discovery and playback example
+- [ ] Snapshot examples (basic_snap.py, multi_zone_snap.py)
+- [ ] Plugin examples
+- [ ] Consider web app example (may require Flutter or shelf)
+
+---
+
+## Phase 5: Documentation
+
+- [ ] Generate dartdoc comments for all public APIs
+- [ ] Create usage guides
+- [ ] Migration guide from Python SoCo
+- [ ] API reference documentation
+- [ ] Update CHANGELOG.md
+
+---
+
+## Phase 6: Quality Assurance
+
+- [ ] Run `dart analyze` - zero issues
+- [ ] Run `dart format` - consistent style
+- [ ] All tests passing
+- [ ] Code coverage > 80%
+- [ ] Manual testing with real Sonos devices
+- [ ] Performance benchmarking
+
+---
+
+## Phase 7: Publishing Preparation
+
+- [ ] Verify LICENSE
+- [ ] Update version to 0.1.0 (initial beta)
+- [ ] Complete CHANGELOG.md
+- [ ] Ensure README.md is comprehensive
+- [ ] Add package topics/keywords in pubspec.yaml
+- [ ] Run `dart pub publish --dry-run`
+- [ ] Create initial Git tag
+
+---
+
+## Dart-Specific Considerations
+
+### Language Differences to Handle:
+- Python dynamic typing → Dart static typing with null safety
+- Python properties (@property) → Dart getters/setters
+- Python async/await → Dart async/await (similar but different)
+- Python generators → Dart Iterables/Streams
+- Python decorators → Dart annotations/mixins
+- Python multiple inheritance → Dart mixins
+- Python `__str__` → Dart `toString()`
+- Python `__repr__` → Dart `toString()` or custom implementation
+- XML handling: lxml → dart xml package
+- HTTP: requests → http or dio package
+
+### Best Practices:
+- Use `final` and `const` extensively
+- Prefer immutable data structures
+- Use null safety (`String?` vs `String`)
+- Follow Dart naming conventions (camelCase, not snake_case)
+- Use factory constructors where appropriate
+- Leverage Dart's collection literals
+- Use `extension` for adding utility methods
+- Prefer composition over inheritance
+
+---
+
+## Git Commit Strategy
+
+Each major milestone should have its own commit:
+- "Initial project setup and structure"
+- "Add LICENSE and update README.md"
+- "Port exceptions and config modules"
+- "Port XML and SOAP utilities"
+- "Port core SoCo class"
+- "Port discovery mechanism"
+- "Port events system"
+- "Port music services"
+- "Port plugins"
+- "Add unit tests for [module]"
+- "Add examples"
+- "Documentation updates"
+- "Pre-release preparation"
+
+---
+
+## Notes
+
+- Focus on API compatibility with Python SoCo where it makes sense
+- Adapt to Dart idioms rather than direct translation
+- Tests should verify exact behavior match before device testing
+- Consider async best practices from the start
+- Event system should use Dart Streams
+- May need platform channels if native networking features required
+
+---
+
+## Current Status
+**Last Updated**: 2025-11-09
+**Current Phase**: Phase 1 - Initial Setup
