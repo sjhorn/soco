@@ -654,6 +654,46 @@ class DidlMusicGenre extends DidlGenre {
   });
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// SPECIAL LISTS                                                            //
+///////////////////////////////////////////////////////////////////////////////
+
+/// Container class for a list of music information items.
+///
+/// Instances of this class are returned from queries into the music library
+/// or to music services. The attributes [totalMatches] and [numberReturned]
+/// are used to ascertain whether paging is required in order to retrieve all
+/// elements of the query.
+class SearchResult {
+  /// The list of items returned
+  final List<DidlObject> items;
+
+  /// The search type (e.g., 'artists', 'albums')
+  final String searchType;
+
+  /// The number of items actually returned
+  final int numberReturned;
+
+  /// The total number of matches for the query
+  final int totalMatches;
+
+  /// Update ID for the content directory
+  final int? updateId;
+
+  /// Creates a SearchResult.
+  SearchResult(
+    this.items,
+    this.searchType,
+    this.numberReturned,
+    this.totalMatches,
+    this.updateId,
+  );
+
+  @override
+  String toString() =>
+      'SearchResult(items: ${items.length}, searchType: \'$searchType\')';
+}
+
 // Initialize the class mapping and circular reference
 void _initializeDidlClasses() {
   // Register all classes
