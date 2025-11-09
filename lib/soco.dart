@@ -52,5 +52,6 @@ export 'src/music_library.dart';
 export 'src/zonegroupstate.dart';
 export 'src/groups.dart';
 
-// Alarms
+// Alarms and snapshots
 export 'src/alarms.dart';
+export 'src/snapshot.dart';
