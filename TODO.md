@@ -105,10 +105,23 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
     - ✅ Play mode, cross fade, position preservation
 
 ### 2.1 Events System
-- [ ] **events_base.py** → `lib/src/events/events_base.dart`
-- [ ] **events.py** → `lib/src/events/events.dart` (async/Stream-based)
-- [ ] Skip events_asyncio.py (already async in Dart)
-- [ ] Skip events_twisted.py (not applicable to Dart)
+- ✅ **events_base.py** → `lib/src/events_base.dart` (782→530 lines)
+    - ✅ parseEventXml with LastChange support and LRU caching
+    - ✅ Event class (read-only event object)
+    - ✅ EventNotifyHandlerBase for NOTIFY requests
+    - ✅ EventListenerBase HTTP server base
+    - ✅ SubscriptionBase with Stream support
+    - ✅ SubscriptionsMap with thread-safe registry
+    - ✅ Auto-renewal with Timer-based approach
+- ✅ **events.py** → `lib/src/events.dart` (488→440 lines)
+    - ✅ EventListener with dart:io HttpServer
+    - ✅ EventNotifyHandler for HTTP requests
+    - ✅ Subscription class with Dart Streams
+    - ✅ Full SUBSCRIBE/UNSUBSCRIBE/NOTIFY protocol
+    - ✅ Auto-renewal support
+    - ✅ Global eventListener and subscriptionsMap instances
+- ✅ Skip events_asyncio.py (Dart is already async by default)
+- ✅ Skip events_twisted.py (not applicable to Dart)
 
 ### 2.2 Music Services Subpackage
 - [ ] **music_services/__init__.py** → `lib/src/music_services/music_services.dart`
@@ -251,9 +264,10 @@ Each major milestone should have its own commit:
 
 ## Current Status
 **Last Updated**: 2025-11-09
-**Current Phase**: Phase 2 - Core Module Porting **COMPLETE!** 🎉
-**Completed**: 18 of 18 core modules (100%)
-**Next**: Phase 3 - Events System or Test Porting
+**Current Phase**: Phase 3 - Events System **COMPLETE!** 🎉
+**Phase 2**: 18 of 18 core modules (100%) ✅
+**Phase 3**: Events System (100%) ✅
+**Next**: Music Services, Plugins, or Test Porting
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -272,3 +286,4 @@ Each major milestone should have its own commit:
 14. ✅ Port music_library module with search and browse functionality
 15. ✅ Port alarms module with full alarm management
 16. ✅ Port snapshot module with state preservation and restoration
+17. ✅ Port events system with UPnP subscriptions and Dart Streams

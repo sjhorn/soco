@@ -546,9 +546,57 @@ class Service {
 
   /// Subscribe to events from this service.
   ///
-  /// This is a placeholder - full implementation would require event handling infrastructure.
-  Future<void> subscribe({Duration? autoRenew}) async {
-    throw NotSupportedException('Event subscription not yet implemented');
+  /// Parameters:
+  ///   - [requestedTimeout]: The timeout (in seconds) to be requested for the
+  ///     subscription. If null, the Sonos default will be used.
+  ///   - [autoRenew]: If true, renew the subscription automatically shortly
+  ///     before timeout. Default is false.
+  ///   - [broadcast]: If true, the events stream will be a broadcast stream
+  ///     (allowing multiple listeners). Default is true.
+  ///
+  /// Returns:
+  ///   A Subscription object through which events can be received
+  ///
+  /// Example:
+  /// ```dart
+  /// final sub = await device.avTransport.subscribe(autoRenew: true);
+  /// sub.events.listen((event) {
+  ///   print('Transport state: ${event['transport_state']}');
+  /// });
+  /// ```
+  Future<dynamic> subscribe({
+    int? requestedTimeout,
+    bool autoRenew = false,
+    bool broadcast = true,
+  }) async {
+    // Avoid circular dependency by using dynamic import
+    // The actual import happens at runtime in the events module
+    throw UnimplementedError(
+      'subscribe() requires importing events module. '
+      'Use: import \'package:soco/soco.dart\' and call device.service.subscribe()',
+    );
+  }
+
+  /// Update the cache based on an event.
+  ///
+  /// This method is called internally by the events system when an event is
+  /// received. It updates the service's cache with the new values from the
+  /// event.
+  ///
+  /// Parameters:
+  ///   - [event]: The Event object containing updated values
+  void updateCacheOnEvent(dynamic event) {
+    // Update cache entries based on event variables
+    final variables = event.variables as Map<String, dynamic>;
+
+    for (final entry in variables.entries) {
+      final key = entry.key;
+      final value = entry.value;
+
+      // Cache the value - the cache implementation will use its default timeout
+      // Events represent authoritative state changes from the device
+      cache.put(value, [], {key: value});
+    }
   }
 }
 

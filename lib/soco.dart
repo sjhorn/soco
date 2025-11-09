@@ -55,3 +55,7 @@ export 'src/groups.dart';
 // Alarms and snapshots
 export 'src/alarms.dart';
 export 'src/snapshot.dart';
+
+// Events
+export 'src/events.dart';
+export 'src/events_base.dart' show Event;
