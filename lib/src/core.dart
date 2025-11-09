@@ -1674,7 +1674,368 @@ class SoCo {
     );
   }
 
-  // TODO: Implement remaining methods (~60+ methods still to port)
+  /// The speaker's loudness compensation.
+  ///
+  /// Returns true if on, false otherwise.
+  ///
+  /// Loudness is a complicated topic. You can read about it on
+  /// Wikipedia: https://en.wikipedia.org/wiki/Loudness
+  Future<bool> get loudness async {
+    final response = await renderingControl.sendCommand(
+      'GetLoudness',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'Master'),
+      ],
+    );
+    final loudnessValue = response['CurrentLoudness'];
+    return loudnessValue == '1';
+  }
+
+  /// Switch on/off the speaker's loudness compensation.
+  Future<void> setLoudness(bool loudness) async {
+    final loudnessValue = loudness ? '1' : '0';
+    await renderingControl.sendCommand(
+      'SetLoudness',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'Master'),
+        MapEntry('DesiredLoudness', loudnessValue),
+      ],
+    );
+  }
+
+  /// The left/right balance for the speaker(s).
+  ///
+  /// Returns a 2-tuple (left_channel, right_channel) of integers between 0
+  /// and 100, representing the volume of each channel. E.g., (100, 100)
+  /// represents full volume to both channels, whereas (100, 0) represents
+  /// left channel at full volume, right channel at zero volume.
+  Future<(int, int)> get balance async {
+    final responseLf = await renderingControl.sendCommand(
+      'GetVolume',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'LF'),
+      ],
+    );
+    final responseRf = await renderingControl.sendCommand(
+      'GetVolume',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'RF'),
+      ],
+    );
+    final volumeLf = int.parse(responseLf['CurrentVolume'] ?? '0');
+    final volumeRf = int.parse(responseRf['CurrentVolume'] ?? '0');
+    return (volumeLf, volumeRf);
+  }
+
+  /// Set the left/right balance for the speaker(s).
+  Future<void> setBalance(int left, int right) async {
+    final clampedLeft = left.clamp(0, 100);
+    final clampedRight = right.clamp(0, 100);
+
+    await renderingControl.sendCommand(
+      'SetVolume',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'LF'),
+        MapEntry('DesiredVolume', clampedLeft),
+      ],
+    );
+    await renderingControl.sendCommand(
+      'SetVolume',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Channel', 'RF'),
+        MapEntry('DesiredVolume', clampedRight),
+      ],
+    );
+  }
+
+  /// The TV Dialog Sync audio delay.
+  ///
+  /// Returns the current value or null if not supported.
+  Future<int?> get audioDelay async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'AudioDelay'),
+      ],
+    );
+    return int.parse(response['CurrentValue'] ?? '0');
+  }
+
+  /// Control the delay added to incoming audio sources.
+  ///
+  /// Also called TV Dialog Sync in Home Theater settings.
+  ///
+  /// Parameters:
+  ///   - [delay]: Delay to apply to audio in the range of 0 to 5
+  Future<void> setAudioDelay(int delay) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Audio delay only supported on soundbars');
+    }
+
+    final clampedDelay = delay.clamp(0, 5);
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'AudioDelay'),
+        MapEntry('DesiredValue', clampedDelay),
+      ],
+    );
+  }
+
+  /// The speaker's night mode.
+  ///
+  /// Returns true if on, false if off, null if not supported.
+  Future<bool?> get nightMode async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'NightMode'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Switch on/off the speaker's night mode.
+  Future<void> setNightMode(bool nightMode) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Night mode only supported on soundbars');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'NightMode'),
+        MapEntry('DesiredValue', nightMode ? 1 : 0),
+      ],
+    );
+  }
+
+  /// The speaker's dialog mode.
+  ///
+  /// Returns true if on, false if off, null if not supported.
+  Future<bool?> get dialogMode async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'DialogLevel'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Switch on/off the speaker's dialog mode (voice enhancement).
+  Future<void> setDialogMode(bool dialogMode) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Dialog mode only supported on soundbars');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'DialogLevel'),
+        MapEntry('DesiredValue', dialogMode ? 1 : 0),
+      ],
+    );
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // SURROUND AND SUBWOOFER SETTINGS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Reports if the home theater surround speakers are enabled.
+  ///
+  /// Should only be called on the primary device in a home theater setup.
+  /// Returns true if on, false if off, null if not supported.
+  Future<bool?> get surroundEnabled async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundEnable'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Enable/disable the connected surround speakers.
+  Future<void> setSurroundEnabled(bool enable) async {
+    if (!await isSoundbar) {
+      throw NotSupportedException('Surround only supported on soundbars');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SurroundEnable'),
+        MapEntry('DesiredValue', enable ? 1 : 0),
+      ],
+    );
+  }
+
+  /// Reports the current subwoofer crossover frequency in Hz.
+  ///
+  /// Only supported on Amp devices. Returns null if not supported.
+  Future<int?> get subCrossover async {
+    if (speakerInfo.isEmpty) {
+      await getSpeakerInfo();
+    }
+
+    final modelName = (speakerInfo['model_name'] as String?)?.toLowerCase();
+    if (modelName?.endsWith('sonos amp') != true) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubCrossover'),
+      ],
+    );
+    return int.parse(response['CurrentValue'] ?? '0');
+  }
+
+  /// Set the subwoofer crossover frequency.
+  ///
+  /// Only supported on Amp devices.
+  ///
+  /// Parameters:
+  ///   - [frequency]: Desired subwoofer crossover frequency in Hz (50-110)
+  Future<void> setSubCrossover(int frequency) async {
+    if (speakerInfo.isEmpty) {
+      await getSpeakerInfo();
+    }
+
+    final modelName = (speakerInfo['model_name'] as String?)?.toLowerCase();
+    if (modelName?.endsWith('sonos amp') != true) {
+      throw NotSupportedException(
+        'Subwoofer crossover not supported on this device',
+      );
+    }
+
+    if (frequency < 50 || frequency > 110) {
+      throw ArgumentError(
+        'Invalid value, must be integer between 50 and 110 inclusive',
+      );
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubCrossover'),
+        MapEntry('DesiredValue', frequency),
+      ],
+    );
+  }
+
+  /// Reports if the subwoofer is enabled.
+  ///
+  /// Returns true if on, false if off, null if not supported.
+  Future<bool?> get subEnabled async {
+    if (!await hasSubwoofer) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubEnable'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Enable/disable the connected subwoofer.
+  Future<void> setSubEnabled(bool enable) async {
+    if (!await hasSubwoofer) {
+      throw NotSupportedException('This group does not have a subwoofer');
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubEnable'),
+        MapEntry('DesiredValue', enable ? 1 : 0),
+      ],
+    );
+  }
+
+  /// The current subwoofer gain level.
+  ///
+  /// Returns the current value or null if not supported.
+  Future<int?> get subGain async {
+    if (!await hasSubwoofer) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubGain'),
+      ],
+    );
+    return int.parse(response['CurrentValue'] ?? '0');
+  }
+
+  /// Set the subwoofer gain level.
+  ///
+  /// Parameters:
+  ///   - [level]: Desired subwoofer gain level (-15 to 15)
+  Future<void> setSubGain(int level) async {
+    if (!await hasSubwoofer) {
+      throw NotSupportedException('This group does not have a subwoofer');
+    }
+
+    if (level < -15 || level > 15) {
+      throw ArgumentError(
+        'Invalid value, must be integer between -15 and 15 inclusive',
+      );
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SubGain'),
+        MapEntry('DesiredValue', level),
+      ],
+    );
+  }
+
+  // TODO: Implement remaining methods (~40+ methods still to port)
   // - Queue management (getQueue, addToQueue, removeFromQueue, etc.)
   // - Group management (join, unjoin, partymode, allGroups, etc.)
   // - Playlists and favorites (~20 methods)
