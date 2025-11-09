@@ -39,7 +39,7 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
 4. ✅ **utils.py** → `lib/src/utils.dart` - General utilities
 5. ✅ **cache.py** → `lib/src/cache.dart` - Caching mechanisms
 6. ✅ **soap.py** → `lib/src/soap.dart` - SOAP protocol handling
-7. **services.py** → `lib/src/services.dart` - Service abstractions
+7. ✅ **services.py** → `lib/src/services.dart` - Service abstractions (952 lines)
 8. **data_structures.py** → `lib/src/data_structures.dart` - Core data models
 9. **data_structures_entry.py** → `lib/src/data_structures_entry.dart`
 10. **data_structure_quirks.py** → `lib/src/data_structure_quirks.dart`
@@ -200,10 +200,11 @@ Each major milestone should have its own commit:
 ## Current Status
 **Last Updated**: 2025-11-09
 **Current Phase**: Phase 2 - Core Module Porting
-**Completed**: Foundation modules + Cache + SOAP
-**Next**: Services module (952 lines - complex), then data structures
+**Completed**: 7 of 18 core modules (39%)
+**Next**: Data structures (core.py depends on these)
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
 2. ✅ Port foundation modules from Python SoCo
 3. ✅ Port cache and SOAP modules
+4. ✅ Port services module (UPnP service abstractions)
