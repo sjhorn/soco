@@ -51,3 +51,6 @@ export 'src/cache.dart';
 export 'src/music_library.dart';
 export 'src/zonegroupstate.dart';
 export 'src/groups.dart';
+
+// Alarms
+export 'src/alarms.dart';

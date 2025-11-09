@@ -87,7 +87,14 @@ Port the Python SoCo library to Dart, maintaining API compatibility and function
     - ✅ Fuzzy search and subcategory navigation
     - ✅ Album art URI conversion
     - ✅ SearchResult class in data_structures.dart
-17. **alarms.py** → `lib/src/alarms.dart`
+17. ✅ **alarms.py** → `lib/src/alarms.dart` - Alarm management (571→630 lines)
+    - ✅ isValidRecurrence validation function
+    - ✅ Alarms singleton class with iteration support
+    - ✅ Alarm class with all properties and validation
+    - ✅ Helper functions (getAlarms, removeAlarmById)
+    - ✅ XML payload parsing
+    - ✅ Next alarm datetime calculation
+    - ✅ Recurrence patterns (DAILY, ONCE, WEEKDAYS, WEEKENDS, ON_DDDDDD)
 18. **snapshot.py** → `lib/src/snapshot.dart`
 
 ### 2.1 Events System
@@ -237,9 +244,9 @@ Each major milestone should have its own commit:
 
 ## Current Status
 **Last Updated**: 2025-11-09
-**Current Phase**: Phase 2 - Core Module Porting (MUSIC LIBRARY COMPLETE!)
-**Completed**: 16 of 18 core modules (89%)
-**Next**: Port alarms.py or snapshot.py
+**Current Phase**: Phase 2 - Core Module Porting (ALARMS COMPLETE!)
+**Completed**: 17 of 18 core modules (94%)
+**Next**: Port snapshot.py (final core module!)
 
 ### Recent Commits
 1. ✅ Initial project setup and structure
@@ -256,3 +263,4 @@ Each major milestone should have its own commit:
 12. ✅ Port discovery module with UDP multicast and network scanning
 13. ✅ Port groups and zonegroupstate modules with XML processing
 14. ✅ Port music_library module with search and browse functionality
+15. ✅ Port alarms module with full alarm management
