@@ -81,7 +81,9 @@ Future<Set<SoCo>?> discover({
     try {
       InternetAddress.tryParse(interfaceAddr);
       addresses = {interfaceAddr};
-      _log.fine('Sending discovery packets on specified interface $interfaceAddr');
+      _log.fine(
+        'Sending discovery packets on specified interface $interfaceAddr',
+      );
     } catch (e) {
       throw ArgumentError('$interfaceAddr is not a valid IP address string');
     }
@@ -92,7 +94,9 @@ Future<Set<SoCo>?> discover({
       _log.fine('No interfaces available for discovery');
       return null;
     }
-    _log.fine('Sending discovery packets on discovered interface(s) $addresses');
+    _log.fine(
+      'Sending discovery packets on discovered interface(s) $addresses',
+    );
   }
 
   // Create sockets for each interface
@@ -147,7 +151,9 @@ Future<Set<SoCo>?> discover({
         final datagram = socket.receive();
         if (datagram != null) {
           final data = String.fromCharCodes(datagram.data);
-          _log.fine('Received discovery response from ${datagram.address}: "$data"');
+          _log.fine(
+            'Received discovery response from ${datagram.address}: "$data"',
+          );
 
           // Check if response contains the household ID
           if (data.contains(householdId)) {
@@ -388,7 +394,9 @@ Future<Set<SoCo>?> scanNetwork({
   final sonosIpAddresses = <String>[];
   final stopScan = <bool>[false]; // Shared flag to stop scanning
 
-  final actualMaxThreads = maxThreads < ipSet.length ? maxThreads : ipSet.length;
+  final actualMaxThreads = maxThreads < ipSet.length
+      ? maxThreads
+      : ipSet.length;
   final ipList = ipSet.toList();
   final chunkSize = (ipList.length / actualMaxThreads).ceil();
 
@@ -402,13 +410,15 @@ Future<Set<SoCo>?> scanNetwork({
     if (start >= ipList.length) break;
 
     final chunk = ipList.sublist(start, end);
-    futures.add(_scanIpChunk(
-      chunk,
-      scanTimeout,
-      sonosIpAddresses,
-      multiHousehold,
-      stopScan,
-    ));
+    futures.add(
+      _scanIpChunk(
+        chunk,
+        scanTimeout,
+        sonosIpAddresses,
+        multiHousehold,
+        stopScan,
+      ),
+    );
   }
 
   _log.fine('Created ${futures.length} scanner tasks');
@@ -598,10 +608,8 @@ Set<InternetAddress> _generateIpRange(String baseAddr, int netmaskBits) {
   final ips = <InternetAddress>{};
 
   final ipParts = baseAddr.split('.').map(int.parse).toList();
-  final ipInt = (ipParts[0] << 24) |
-      (ipParts[1] << 16) |
-      (ipParts[2] << 8) |
-      ipParts[3];
+  final ipInt =
+      (ipParts[0] << 24) | (ipParts[1] << 16) | (ipParts[2] << 8) | ipParts[3];
 
   final mask = (~0 << (32 - netmaskBits)) & 0xFFFFFFFF;
   final networkAddr = ipInt & mask;
@@ -635,11 +643,7 @@ Set<InternetAddress> _generateIpRange(String baseAddr, int netmaskBits) {
 ///
 /// Returns:
 ///   `true` if a connection can be made.
-Future<bool> _checkIpAndPort(
-  String ipAddress,
-  int port,
-  double timeout,
-) async {
+Future<bool> _checkIpAndPort(String ipAddress, int port, double timeout) async {
   try {
     final socket = await Socket.connect(
       ipAddress,

@@ -131,26 +131,26 @@ class Service {
   /// The SoCo instance to which UPnP Actions are sent
   final dynamic soco;
 
-  /// The UPnP service type
-  late final String serviceType;
+  /// The UPnP service type (can be overridden by subclasses)
+  late String serviceType;
 
-  /// The UPnP service version
-  late final int version;
+  /// The UPnP service version (can be overridden by subclasses)
+  late int version;
 
-  /// The service ID
-  late final String serviceId;
+  /// The service ID (can be overridden by subclasses)
+  late String serviceId;
 
   /// The base URL for sending UPnP Actions
   late final String baseUrl;
 
-  /// The UPnP Control URL
-  late final String controlUrl;
+  /// The UPnP Control URL (can be overridden by subclasses)
+  late String controlUrl;
 
-  /// The service control protocol description URL
-  late final String scpdUrl;
+  /// The service control protocol description URL (can be overridden by subclasses)
+  late String scpdUrl;
 
-  /// The service eventing subscription URL
-  late final String eventSubscriptionUrl;
+  /// The service eventing subscription URL (can be overridden by subclasses)
+  late String eventSubscriptionUrl;
 
   /// A cache for storing the result of network calls
   late final BaseCache cache;

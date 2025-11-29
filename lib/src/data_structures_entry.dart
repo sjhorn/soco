@@ -61,7 +61,7 @@ List<dynamic> fromDidlString(String string) {
     if (tag == 'item' || tag == 'container') {
       // Find the upnp:class element
       final itemClassElement = element
-          .findElements(soco_xml.nsTag('upnp', 'class'))
+          .findElements('class', namespace: soco_xml.namespaces['upnp'])
           .firstOrNull;
 
       if (itemClassElement == null) {

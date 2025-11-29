@@ -20,7 +20,7 @@ import 'utils.dart';
 final _log = Logger('soco.events_base');
 
 /// Cache for parsed event XML (LRU cache with max 128 entries)
-final _eventXmlCache = LinkedHashMap<String, Map<String, dynamic>>();
+final _eventXmlCache = <String, Map<String, dynamic>>{};
 const _maxCacheSize = 128;
 
 /// Parse the body of a UPnP event.
@@ -74,20 +74,26 @@ Map<String, dynamic> parseEventXml(String xmlEvent) {
         // whether we are looking at an avTransport event, a
         // renderingControl event, or a Queue event
         // (there, it is named QueueID)
-        XmlElement? instance = lastChangeTree.rootElement.findElements(
-          'InstanceID',
-          namespace: 'urn:schemas-upnp-org:metadata-1-0/AVT/',
-        ).firstOrNull;
+        XmlElement? instance = lastChangeTree.rootElement
+            .findElements(
+              'InstanceID',
+              namespace: 'urn:schemas-upnp-org:metadata-1-0/AVT/',
+            )
+            .firstOrNull;
 
-        instance ??= lastChangeTree.rootElement.findElements(
-          'InstanceID',
-          namespace: 'urn:schemas-upnp-org:metadata-1-0/RCS/',
-        ).firstOrNull;
+        instance ??= lastChangeTree.rootElement
+            .findElements(
+              'InstanceID',
+              namespace: 'urn:schemas-upnp-org:metadata-1-0/RCS/',
+            )
+            .firstOrNull;
 
-        instance ??= lastChangeTree.rootElement.findElements(
-          'QueueID',
-          namespace: 'urn:schemas-sonos-com:metadata-1-0/Queue/',
-        ).firstOrNull;
+        instance ??= lastChangeTree.rootElement
+            .findElements(
+              'QueueID',
+              namespace: 'urn:schemas-sonos-com:metadata-1-0/Queue/',
+            )
+            .firstOrNull;
 
         if (instance == null) continue;
 
@@ -105,7 +111,8 @@ Map<String, dynamic> parseEventXml(String xmlEvent) {
           // 'channel' attribute. In addition, it seems that Sonos
           // sometimes uses a text value instead: see
           // http://forums.sonos.com/showthread.php?t=34663
-          var value = lastChangeVar.getAttribute('val') ?? lastChangeVar.innerText;
+          var value =
+              lastChangeVar.getAttribute('val') ?? lastChangeVar.innerText;
 
           if (value.isEmpty) continue;
 
@@ -203,7 +210,8 @@ class Event {
   dynamic operator [](String name) => variables[name];
 
   @override
-  String toString() => 'Event(sid: $sid, seq: $seq, service: ${service.serviceId})';
+  String toString() =>
+      'Event(sid: $sid, seq: $seq, service: ${service.serviceId})';
 }
 
 /// Base class for handling NOTIFY requests from Sonos devices.
@@ -347,9 +355,9 @@ abstract class SubscriptionBase {
   ///   - [service]: The SoCo Service to which the subscription should be made
   ///   - [broadcast]: If true, the events stream will be a broadcast stream
   SubscriptionBase(this.service, {bool broadcast = true})
-      : _eventsController = broadcast
-            ? StreamController<Event>.broadcast()
-            : StreamController<Event>() {
+    : _eventsController = broadcast
+          ? StreamController<Event>.broadcast()
+          : StreamController<Event>() {
     events = _eventsController.stream;
   }
 

@@ -1,10 +1,17 @@
 name: soco
-description: A Dart library for controlling Sonos speakers programmatically. Port of the Python SoCo library.
-version: 0.1.0
+description: Control Sonos speakers programmatically. Discover devices, manage playback, groups, alarms, and more. Port of Python SoCo library.
+version: 0.1.0-dev
 repository: https://github.com/shorn/soco-dart
 homepage: https://github.com/shorn/soco-dart
 issue_tracker: https://github.com/shorn/soco-dart/issues
 documentation: https://github.com/shorn/soco-dart
+
+topics:
+  - sonos
+  - audio
+  - upnp
+  - iot
+  - smart-home
 
 environment:
   sdk: ^3.9.2
@@ -21,6 +28,9 @@ dependencies:
 
   # Application directories (for caching, etc.)
   path_provider: ^2.1.0
+
+  # Path manipulation
+  path: ^1.9.0
 
   # Logging
   logging: ^1.2.0

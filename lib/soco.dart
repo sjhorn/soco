@@ -28,34 +28,55 @@
 library;
 
 // Core functionality
-export 'src/core.dart';
-export 'src/config.dart';
+export 'src/core.dart' show SoCo;
+export 'src/config.dart' show cacheEnabled;
 export 'src/exceptions.dart';
 
 // Discovery
-export 'src/discovery.dart';
+export 'src/discovery.dart' show discover, anySoco, byName, scanNetwork;
 
-// Data structures
-export 'src/data_structures.dart';
-export 'src/data_structures_entry.dart' hide didlClassToSoCoClass;
-export 'src/ms_data_structures.dart';
-
-// Services and utilities
-export 'src/services.dart';
-export 'src/soap.dart';
-export 'src/xml.dart';
-export 'src/utils.dart';
-export 'src/cache.dart';
+// Data structures (commonly used types)
+export 'src/data_structures.dart'
+    show
+        DidlObject,
+        DidlItem,
+        DidlContainer,
+        DidlResource,
+        DidlMusicTrack,
+        DidlMusicAlbum,
+        DidlMusicArtist,
+        DidlMusicGenre,
+        DidlPlaylistContainer,
+        DidlAudioBroadcast,
+        SearchResult;
+export 'src/data_structures_entry.dart' show fromDidlString;
 
 // Music library and zone state
-export 'src/music_library.dart';
-export 'src/zonegroupstate.dart';
-export 'src/groups.dart';
+export 'src/music_library.dart' show MusicLibrary;
+export 'src/groups.dart' show ZoneGroup;
 
 // Alarms and snapshots
-export 'src/alarms.dart';
-export 'src/snapshot.dart';
+export 'src/alarms.dart' show Alarm, Alarms, getAlarms, removeAlarmById;
+export 'src/snapshot.dart' show Snapshot;
 
-// Events
-export 'src/events.dart';
+// Events (core types)
+export 'src/events.dart' show Subscription, eventListener, subscriptionsMap;
 export 'src/events_base.dart' show Event;
+
+// Music services
+export 'src/music_services/music_services.dart'
+    show
+        MusicService,
+        Account,
+        TokenStoreBase,
+        JsonFileTokenStore,
+        MusicServiceItem,
+        MediaMetadata,
+        MediaCollection;
+
+// Note: Advanced/internal APIs (services, soap, xml, utils, cache,
+// zonegroupstate, ms_data_structures) are not exported by default.
+// Import them directly if needed:
+//   import 'package:soco/src/services.dart';
+//   import 'package:soco/src/soap.dart';
+//   etc.

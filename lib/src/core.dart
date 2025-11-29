@@ -267,9 +267,6 @@ class SoCo {
   String? _channelMap;
   String? _htSatChanMap;
   bool? _isBridge;
-  bool _isCoordinator = false;
-  bool _isSatellite = false;
-  bool _hasSatellites = false;
   String? _channel;
   bool? _isSoundbar;
   String? _playerName;
@@ -324,6 +321,10 @@ class SoCo {
   /// The speaker's name.
   Future<String> get playerName async {
     await zoneGroupState.poll(this);
+    // Check speakerInfo first (populated by ZGS), then fall back to _playerName
+    if (speakerInfo.containsKey('_playerName')) {
+      return speakerInfo['_playerName'] as String;
+    }
     return _playerName!;
   }
 
@@ -382,13 +383,13 @@ class SoCo {
   /// Is this zone a group coordinator?
   Future<bool> get isCoordinator async {
     await zoneGroupState.poll(this);
-    return _isCoordinator;
+    return speakerInfo['_isCoordinator'] as bool? ?? false;
   }
 
   /// Is this zone a satellite in a home theater setup?
   Future<bool> get isSatellite async {
     await zoneGroupState.poll(this);
-    return _isSatellite;
+    return speakerInfo['_isSatellite'] as bool? ?? false;
   }
 
   /// The parent device if this zone is a satellite, null otherwise.
@@ -401,7 +402,7 @@ class SoCo {
   /// Will only return true on the primary device in a home theater configuration.
   Future<bool> get hasSatellites async {
     await zoneGroupState.poll(this);
-    return _hasSatellites;
+    return speakerInfo['_hasSatellites'] as bool? ?? false;
   }
 
   /// Is this zone a subwoofer?
@@ -475,7 +476,6 @@ class SoCo {
     return modelName?.endsWith(arcUltraProductName) ?? false;
   }
 
-
   /// Get information about the Sonos speaker.
   ///
   /// Parameters:
@@ -495,28 +495,55 @@ class SoCo {
     }
 
     final url = 'http://$ipAddress:1400/xml/device_description.xml';
-    final response = await http.get(
-      Uri.parse(url),
-      // Dart http package uses Duration instead of timeout tuple
-    ).timeout(
-      timeout ?? const Duration(seconds: 30),
-    );
+    final response = await http
+        .get(
+          Uri.parse(url),
+          // Dart http package uses Duration instead of timeout tuple
+        )
+        .timeout(timeout ?? const Duration(seconds: 30));
 
     final document = XmlDocument.parse(response.body);
     final device = document.findAllElements('device').firstOrNull;
 
     if (device != null) {
-      speakerInfo['zone_name'] = device.findElements('roomName').firstOrNull?.innerText;
-      speakerInfo['player_icon'] =
-          device.findElements('iconList').firstOrNull?.findElements('icon').firstOrNull?.findElements('url').firstOrNull?.innerText;
+      speakerInfo['zone_name'] = device
+          .findElements('roomName')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['player_icon'] = device
+          .findElements('iconList')
+          .firstOrNull
+          ?.findElements('icon')
+          .firstOrNull
+          ?.findElements('url')
+          .firstOrNull
+          ?.innerText;
 
       speakerInfo['uid'] = await uid;
-      speakerInfo['serial_number'] = device.findElements('serialNum').firstOrNull?.innerText;
-      speakerInfo['software_version'] = device.findElements('softwareVersion').firstOrNull?.innerText;
-      speakerInfo['hardware_version'] = device.findElements('hardwareVersion').firstOrNull?.innerText;
-      speakerInfo['model_number'] = device.findElements('modelNumber').firstOrNull?.innerText;
-      speakerInfo['model_name'] = device.findElements('modelName').firstOrNull?.innerText;
-      speakerInfo['display_version'] = device.findElements('displayVersion').firstOrNull?.innerText;
+      speakerInfo['serial_number'] = device
+          .findElements('serialNum')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['software_version'] = device
+          .findElements('softwareVersion')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['hardware_version'] = device
+          .findElements('hardwareVersion')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['model_number'] = device
+          .findElements('modelNumber')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['model_name'] = device
+          .findElements('modelName')
+          .firstOrNull
+          ?.innerText;
+      speakerInfo['display_version'] = device
+          .findElements('displayVersion')
+          .firstOrNull
+          ?.innerText;
 
       // Extract MAC address from serial number
       final serialNumber = speakerInfo['serial_number'] as String?;
@@ -582,10 +609,7 @@ class SoCo {
   Future<void> play({Duration? timeout}) async {
     await avTransport.sendCommand(
       'Play',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Speed', 1),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Speed', 1)],
     );
   }
 
@@ -638,7 +662,8 @@ class SoCo {
     var finalUri = uri;
 
     if (meta.isEmpty && title.isNotEmpty) {
-      const metaTemplate = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements'
+      const metaTemplate =
+          '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements'
           '/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
           'xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" '
           'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
@@ -685,10 +710,7 @@ class SoCo {
   Future<void> pause() async {
     await avTransport.sendCommand(
       'Pause',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Speed', 1),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Speed', 1)],
     );
   }
 
@@ -696,10 +718,7 @@ class SoCo {
   Future<void> stop() async {
     await avTransport.sendCommand(
       'Stop',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Speed', 1),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Speed', 1)],
     );
   }
 
@@ -776,10 +795,7 @@ class SoCo {
   Future<void> next() async {
     await avTransport.sendCommand(
       'Next',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Speed', 1),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Speed', 1)],
     );
   }
 
@@ -791,10 +807,7 @@ class SoCo {
   Future<void> previous() async {
     await avTransport.sendCommand(
       'Previous',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Speed', 1),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Speed', 1)],
     );
   }
 
@@ -808,10 +821,7 @@ class SoCo {
   Future<bool> get mute async {
     final response = await renderingControl.sendCommand(
       'GetMute',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Channel', 'Master'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Channel', 'Master')],
     );
     final muteState = response['CurrentMute'];
     return muteState == '1';
@@ -836,10 +846,7 @@ class SoCo {
   Future<int> get volume async {
     final response = await renderingControl.sendCommand(
       'GetVolume',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Channel', 'Master'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Channel', 'Master')],
     );
     final volumeStr = response['CurrentVolume'];
     return int.parse(volumeStr ?? '0');
@@ -879,10 +886,7 @@ class SoCo {
     final clampedBass = bass.clamp(-10, 10);
     await renderingControl.sendCommand(
       'SetBass',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('DesiredBass', clampedBass),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('DesiredBass', clampedBass)],
     );
   }
 
@@ -999,10 +1003,12 @@ class SoCo {
 
   /// Convert camelCase to snake_case
   String _camelToUnderscore(String text) {
-    return text.replaceAllMapped(
-      RegExp(r'[A-Z]'),
-      (match) => '_${match.group(0)!.toLowerCase()}',
-    ).replaceFirst(RegExp(r'^_'), '');
+    return text
+        .replaceAllMapped(
+          RegExp(r'[A-Z]'),
+          (match) => '_${match.group(0)!.toLowerCase()}',
+        )
+        .replaceFirst(RegExp(r'^_'), '');
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -1036,10 +1042,7 @@ class SoCo {
 
     await avTransport.sendCommand(
       'SetPlayMode',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('NewPlayMode', upperMode),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('NewPlayMode', upperMode)],
     );
   }
 
@@ -1137,12 +1140,16 @@ class SoCo {
     final metadata = response['TrackMetaData'];
 
     // Duration seems to be '0:00:00' when listening to radio
-    if (track['duration'] == '0:00:00' && metadata != null && metadata.isNotEmpty) {
+    if (track['duration'] == '0:00:00' &&
+        metadata != null &&
+        metadata.isNotEmpty) {
       // TODO: Parse radio metadata
       // This would require XML parsing of the metadata
     }
 
-    if (metadata != null && metadata.isNotEmpty && metadata != 'NOT_IMPLEMENTED') {
+    if (metadata != null &&
+        metadata.isNotEmpty &&
+        metadata != 'NOT_IMPLEMENTED') {
       // TODO: Parse DIDL metadata to extract title, artist, album, album_art
       // This requires XML parsing which we'll implement when needed
     }
@@ -1163,10 +1170,7 @@ class SoCo {
       args: [MapEntry('InstanceID', 0)],
     );
 
-    final media = <String, String>{
-      'uri': '',
-      'channel': '',
-    };
+    final media = <String, String>{'uri': '', 'channel': ''};
 
     media['uri'] = response['CurrentURI'] ?? '';
 
@@ -1218,10 +1222,7 @@ class SoCo {
 
     // The actions might look like 'X_DLNA_SeekTime', but we only want the
     // last part
-    return actions
-        .split(', ')
-        .map((action) => action.split('_').last)
-        .toList();
+    return actions.split(', ').map((action) => action.split('_').last).toList();
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -1345,7 +1346,8 @@ class SoCo {
         final hours = duration.inHours;
         final minutes = duration.inMinutes.remainder(60);
         final seconds = duration.inSeconds.remainder(60);
-        sleepTime = '${hours.toString().padLeft(2, '0')}:'
+        sleepTime =
+            '${hours.toString().padLeft(2, '0')}:'
             '${minutes.toString().padLeft(2, '0')}:'
             '${seconds.toString().padLeft(2, '0')}';
       }
@@ -1424,7 +1426,9 @@ class SoCo {
       final response = await http.get(Uri.parse(url)).timeout(timeout);
 
       if (response.statusCode != 200) {
-        throw Exception('HTTP request failed with status ${response.statusCode}');
+        throw Exception(
+          'HTTP request failed with status ${response.statusCode}',
+        );
       }
 
       // Parse XML response
@@ -1437,8 +1441,9 @@ class SoCo {
         throw NotSupportedException('Battery information not supported');
       }
 
-      final localBatteryStatus =
-          zpInfo.findElements('LocalBatteryStatus').firstOrNull;
+      final localBatteryStatus = zpInfo
+          .findElements('LocalBatteryStatus')
+          .firstOrNull;
       if (localBatteryStatus == null) {
         throw NotSupportedException('Battery information not supported');
       }
@@ -1577,7 +1582,8 @@ class SoCo {
   }) async {
     // Create a minimal DIDL resource
     // TODO: Use proper DidlResource and DidlObject when fully implemented
-    final metadata = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" '
+    final metadata =
+        '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" '
         'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
         'xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" '
         'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
@@ -1680,10 +1686,7 @@ class SoCo {
   Future<bool> get loudness async {
     final response = await renderingControl.sendCommand(
       'GetLoudness',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Channel', 'Master'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Channel', 'Master')],
     );
     final loudnessValue = response['CurrentLoudness'];
     return loudnessValue == '1';
@@ -1711,17 +1714,11 @@ class SoCo {
   Future<(int, int)> get balance async {
     final responseLf = await renderingControl.sendCommand(
       'GetVolume',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Channel', 'LF'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Channel', 'LF')],
     );
     final responseRf = await renderingControl.sendCommand(
       'GetVolume',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('Channel', 'RF'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('Channel', 'RF')],
     );
     final volumeLf = int.parse(responseLf['CurrentVolume'] ?? '0');
     final volumeRf = int.parse(responseRf['CurrentVolume'] ?? '0');
@@ -1761,10 +1758,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'AudioDelay'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'AudioDelay')],
     );
     return int.parse(response['CurrentValue'] ?? '0');
   }
@@ -1801,10 +1795,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'NightMode'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'NightMode')],
     );
     return response['CurrentValue'] == '1';
   }
@@ -1835,10 +1826,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'DialogLevel'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'DialogLevel')],
     );
     return response['CurrentValue'] == '1';
   }
@@ -1874,10 +1862,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SurroundEnable'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SurroundEnable')],
     );
     return response['CurrentValue'] == '1';
   }
@@ -1913,10 +1898,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SubCrossover'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SubCrossover')],
     );
     return int.parse(response['CurrentValue'] ?? '0');
   }
@@ -1965,10 +1947,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SubEnable'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SubEnable')],
     );
     return response['CurrentValue'] == '1';
   }
@@ -1999,10 +1978,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SubGain'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SubGain')],
     );
     return int.parse(response['CurrentValue'] ?? '0');
   }
@@ -2043,10 +2019,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SurroundMode'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SurroundMode')],
     );
     return response['CurrentValue'] == '1';
   }
@@ -2080,10 +2053,7 @@ class SoCo {
 
     final response = await renderingControl.sendCommand(
       'GetEQ',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('EQType', 'SurroundLevel'),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('EQType', 'SurroundLevel')],
     );
     return int.parse(response['CurrentValue'] ?? '0');
   }
@@ -2361,9 +2331,7 @@ class SoCo {
 
     await deviceProperties.sendCommand(
       'AddBondedZones',
-      args: [
-        MapEntry('ChannelMapSet', '$masterUid:LF,LF;$slaveUid:RF,RF'),
-      ],
+      args: [MapEntry('ChannelMapSet', '$masterUid:LF,LF;$slaveUid:RF,RF')],
     );
     zoneGroupState.clearCache();
   }

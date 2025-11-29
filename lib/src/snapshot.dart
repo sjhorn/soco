@@ -255,7 +255,11 @@ class Snapshot {
       // was playing a stream (radio station, file, or nothing)
       // reinstate uri and meta data
       if (mediaUri != null && mediaUri!.isNotEmpty) {
-        await device.playUri(uri: mediaUri!, meta: mediaMetadata ?? '', start: false);
+        await device.playUri(
+          uri: mediaUri!,
+          meta: mediaMetadata ?? '',
+          start: false,
+        );
       }
     }
   }
@@ -318,7 +322,10 @@ class Snapshot {
       // Need to get all the tracks in batches, but Only get the next
       // batch if all the items requested were in the last batch
       while (numReturn == batchSize) {
-        final queueItems = await device.getQueue(start: total, maxItems: batchSize);
+        final queueItems = await device.getQueue(
+          start: total,
+          maxItems: batchSize,
+        );
         // Check how many entries were returned
         numReturn = queueItems.length;
         // Make sure the queue is not empty

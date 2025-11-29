@@ -93,25 +93,24 @@ class ZoneGroupState {
     final now = DateTime.now().millisecondsSinceEpoch / 1000.0;
     if (now < _cacheUntil) {
       totalRequests++;
-      _log.fine('Cache still active (GetZoneGroupState) during poll for ${soco.ipAddress}');
+      _log.fine(
+        'Cache still active (GetZoneGroupState) during poll for ${soco.ipAddress}',
+      );
       return;
     }
 
     // Forward satellite requests to parent
+    // Note: Skip satellite check during poll to avoid circular dependency
+    // The satellite status will be determined by the poll result itself
     var targetSoco = soco;
-    if (await soco.isSatellite) {
-      final parent = soco.satelliteParent;
-      if (parent != null) {
-        _log.fine('Poll request on satellite (${soco.ipAddress}), using parent (${parent.ipAddress})');
-        targetSoco = parent;
-      }
-    }
 
     // On large (about 20+ players) systems, GetZoneGroupState() can cause
     // the target Sonos player to return an HTTP 501 error, raising a
     // SoCoUPnPException.
     try {
-      final response = await targetSoco.zoneGroupTopology.sendCommand('GetZoneGroupState');
+      final response = await targetSoco.zoneGroupTopology.sendCommand(
+        'GetZoneGroupState',
+      );
       final zgs = response['ZoneGroupState'];
 
       if (zgs != null) {
@@ -122,7 +121,9 @@ class ZoneGroupState {
         );
 
         // Extend cache
-        final newExpiry = DateTime.now().millisecondsSinceEpoch / 1000.0 + pollingCacheTimeout;
+        final newExpiry =
+            DateTime.now().millisecondsSinceEpoch / 1000.0 +
+            pollingCacheTimeout;
         _cacheUntil = newExpiry;
         _log.fine('Extending ZGS cache by ${pollingCacheTimeout}s');
       }
@@ -183,7 +184,9 @@ class ZoneGroupState {
 
     // Example Location contents:
     //   http://192.168.1.100:1400/xml/device_description.xml
-    final location = memberAttribs.firstWhere((a) => a.name.local == 'Location').value;
+    final location = memberAttribs
+        .firstWhere((a) => a.name.local == 'Location')
+        .value;
     final ipAddr = location.split('//')[1].split(':')[0];
 
     final zone = SoCo(ipAddr);
@@ -193,7 +196,9 @@ class ZoneGroupState {
       final key = entry.key;
       final attrib = entry.value;
 
-      final attribute = memberAttribs.where((a) => a.name.local == key).firstOrNull;
+      final attribute = memberAttribs
+          .where((a) => a.name.local == key)
+          .firstOrNull;
       if (attribute != null) {
         // Use reflection-like approach to set private fields
         // Since we can't directly set private fields in Dart, we'll need
@@ -208,7 +213,9 @@ class ZoneGroupState {
     final uid = _getSoCoAttribute(zone, '_uid');
 
     for (final channelMapStr in [channelMap, htSatChanMap]) {
-      if (channelMapStr != null && channelMapStr is String && channelMapStr.isNotEmpty) {
+      if (channelMapStr != null &&
+          channelMapStr is String &&
+          channelMapStr.isNotEmpty) {
         // Example ChannelMapSet (stereo pair):
         //   RINCON_001XXX1400:LF,LF;RINCON_002XXX1400:RF,RF
         // Example HTSatChanMapSet (home theater):
@@ -224,7 +231,9 @@ class ZoneGroupState {
 
     // Add the zone to the set of all members, and to the set of visible
     // members if appropriate
-    final invisibleAttr = memberAttribs.where((a) => a.name.local == 'Invisible').firstOrNull;
+    final invisibleAttr = memberAttribs
+        .where((a) => a.name.local == 'Invisible')
+        .firstOrNull;
     if (invisibleAttr == null || invisibleAttr.value != '1') {
       visibleZones.add(zone);
     }
@@ -251,7 +260,9 @@ class ZoneGroupState {
       SoCo? groupCoordinator;
       final members = <SoCo>{};
 
-      for (final memberElement in groupElement.findElements('ZoneGroupMember')) {
+      for (final memberElement in groupElement.findElements(
+        'ZoneGroupMember',
+      )) {
         final zone = _parseZoneGroupMember(memberElement);
 
         // Reset satellite status
@@ -289,11 +300,13 @@ class ZoneGroupState {
       }
 
       if (groupCoordinator != null) {
-        groups.add(ZoneGroup(
-          uid: groupUid,
-          coordinator: groupCoordinator,
-          members: members,
-        ));
+        groups.add(
+          ZoneGroup(
+            uid: groupUid,
+            coordinator: groupCoordinator,
+            members: members,
+          ),
+        );
       }
     }
   }
@@ -325,8 +338,10 @@ class ZoneGroupState {
 
     // Sort children
     children.sort((a, b) {
-      final aKey = a.getAttribute('Coordinator') ?? a.getAttribute('UUID') ?? '';
-      final bKey = b.getAttribute('Coordinator') ?? b.getAttribute('UUID') ?? '';
+      final aKey =
+          a.getAttribute('Coordinator') ?? a.getAttribute('UUID') ?? '';
+      final bKey =
+          b.getAttribute('Coordinator') ?? b.getAttribute('UUID') ?? '';
       return aKey.compareTo(bKey);
     });
 

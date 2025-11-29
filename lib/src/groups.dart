@@ -76,11 +76,8 @@ class ZoneGroup extends Iterable<SoCo> {
   ///   - [uid]: The unique Sonos ID for this group
   ///   - [coordinator]: The SoCo instance representing the coordinator
   ///   - [members]: A set of SoCo instances which are members of this group
-  ZoneGroup({
-    required this.uid,
-    required this.coordinator,
-    Set<SoCo>? members,
-  }) : members = members ?? {};
+  ZoneGroup({required this.uid, required this.coordinator, Set<SoCo>? members})
+    : members = members ?? {};
 
   @override
   Iterator<SoCo> get iterator => members.iterator;
@@ -151,10 +148,7 @@ class ZoneGroup extends Iterable<SoCo> {
     );
     await coordinator.groupRenderingControl.sendCommand(
       'SetGroupVolume',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('DesiredVolume', groupVolume),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('DesiredVolume', groupVolume)],
     );
   }
 
@@ -178,10 +172,7 @@ class ZoneGroup extends Iterable<SoCo> {
     final muteValue = groupMute ? '1' : '0';
     await coordinator.groupRenderingControl.sendCommand(
       'SetGroupMute',
-      args: [
-        MapEntry('InstanceID', 0),
-        MapEntry('DesiredMute', muteValue),
-      ],
+      args: [MapEntry('InstanceID', 0), MapEntry('DesiredMute', muteValue)],
     );
   }
 

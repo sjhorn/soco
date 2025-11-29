@@ -14,7 +14,18 @@ abstract class BaseCache {
   bool enabled = true;
 
   /// Put an item into the cache.
-  void put(dynamic item, List<dynamic> args, Map<String, dynamic> kwargs);
+  ///
+  /// Parameters:
+  ///   - [item]: The item to cache
+  ///   - [args]: any arguments
+  ///   - [kwargs]: any keyword arguments
+  ///   - [timeout]: optional timeout duration for cached item
+  void put(
+    dynamic item,
+    List<dynamic> args,
+    Map<String, dynamic> kwargs, {
+    Duration? timeout,
+  });
 
   /// Get an item from the cache.
   dynamic get(List<dynamic> args, Map<String, dynamic> kwargs);
@@ -32,7 +43,12 @@ abstract class BaseCache {
 class NullCache extends BaseCache {
   /// Put an item into the cache (does nothing).
   @override
-  void put(dynamic item, List<dynamic> args, Map<String, dynamic> kwargs) {
+  void put(
+    dynamic item,
+    List<dynamic> args,
+    Map<String, dynamic> kwargs, {
+    Duration? timeout,
+  }) {
     // Do nothing
   }
 

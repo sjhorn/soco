@@ -231,7 +231,8 @@ class Alarms extends Iterable<Alarm> {
         includeDisabled: includeDisabled,
       );
       if (thisNextDatetime != null &&
-          (nextAlarmDatetime == null || thisNextDatetime.isBefore(nextAlarmDatetime))) {
+          (nextAlarmDatetime == null ||
+              thisNextDatetime.isBefore(nextAlarmDatetime))) {
         nextAlarmDatetime = thisNextDatetime;
       }
     }
@@ -282,7 +283,8 @@ class Alarms extends Iterable<Alarm> {
         'program_metadata': alarmElement.getAttribute('ProgramMetaData') ?? '',
         'play_mode': alarmElement.getAttribute('PlayMode')!,
         'volume': int.parse(alarmElement.getAttribute('Volume')!),
-        'include_linked_zones': alarmElement.getAttribute('IncludeLinkedZones') == '1',
+        'include_linked_zones':
+            alarmElement.getAttribute('IncludeLinkedZones') == '1',
       };
 
       alarmArgs[alarmId] = args;
@@ -294,7 +296,14 @@ class Alarms extends Iterable<Alarm> {
   /// Parse a time string (HH:MM:SS) into a DateTime (time portion only)
   DateTime _parseTime(String timeStr) {
     final parts = timeStr.split(':');
-    return DateTime(0, 1, 1, int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+    return DateTime(
+      0,
+      1,
+      1,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+      int.parse(parts[2]),
+    );
   }
 }
 
@@ -373,10 +382,10 @@ class Alarm {
     String playMode = 'NORMAL',
     int volume = 20,
     this.includeLinkedZones = false,
-  })  : startTime = startTime ?? _getCurrentTime(),
-        _recurrence = recurrence,
-        _playMode = playMode,
-        _volume = volume {
+  }) : startTime = startTime ?? _getCurrentTime(),
+       _recurrence = recurrence,
+       _playMode = playMode,
+       _volume = volume {
     // Validate recurrence
     this.recurrence = recurrence;
     // Validate play mode
@@ -387,25 +396,37 @@ class Alarm {
 
   /// Internal constructor from map
   Alarm._fromMap(Map<String, dynamic> map)
-      : zone = map['zone'] as SoCo,
-        startTime = map['start_time'] as DateTime,
-        duration = map['duration'] as DateTime?,
-        _recurrence = map['recurrence'] as String,
-        enabled = map['enabled'] as bool,
-        programUri = map['program_uri'] as String?,
-        programMetadata = map['program_metadata'] as String,
-        _playMode = map['play_mode'] as String,
-        _volume = map['volume'] as int,
-        includeLinkedZones = map['include_linked_zones'] as bool;
+    : zone = map['zone'] as SoCo,
+      startTime = map['start_time'] as DateTime,
+      duration = map['duration'] as DateTime?,
+      _recurrence = map['recurrence'] as String,
+      enabled = map['enabled'] as bool,
+      programUri = map['program_uri'] as String?,
+      programMetadata = map['program_metadata'] as String,
+      _playMode = map['play_mode'] as String,
+      _volume = map['volume'] as int,
+      includeLinkedZones = map['include_linked_zones'] as bool;
 
   /// Update this alarm from a map
   void _updateFromMap(Map<String, dynamic> map) {
-    if (map.containsKey('start_time')) startTime = map['start_time'] as DateTime;
-    if (map.containsKey('duration')) duration = map['duration'] as DateTime?;
-    if (map.containsKey('recurrence')) _recurrence = map['recurrence'] as String;
-    if (map.containsKey('enabled')) enabled = map['enabled'] as bool;
-    if (map.containsKey('program_uri')) programUri = map['program_uri'] as String?;
-    if (map.containsKey('program_metadata')) programMetadata = map['program_metadata'] as String;
+    if (map.containsKey('start_time')) {
+      startTime = map['start_time'] as DateTime;
+    }
+    if (map.containsKey('duration')) {
+      duration = map['duration'] as DateTime?;
+    }
+    if (map.containsKey('recurrence')) {
+      _recurrence = map['recurrence'] as String;
+    }
+    if (map.containsKey('enabled')) {
+      enabled = map['enabled'] as bool;
+    }
+    if (map.containsKey('program_uri')) {
+      programUri = map['program_uri'] as String?;
+    }
+    if (map.containsKey('program_metadata')) {
+      programMetadata = map['program_metadata'] as String;
+    }
     if (map.containsKey('play_mode')) _playMode = map['play_mode'] as String;
     if (map.containsKey('volume')) _volume = map['volume'] as int;
     if (map.containsKey('include_linked_zones')) {
@@ -496,7 +517,10 @@ class Alarm {
     ];
 
     if (_alarmId == null) {
-      final response = await zone.alarmClock.sendCommand('CreateAlarm', args: args);
+      final response = await zone.alarmClock.sendCommand(
+        'CreateAlarm',
+        args: args,
+      );
       _alarmId = response['AssignedID'] as String;
 
       final alarms = Alarms();
@@ -565,7 +589,11 @@ class Alarm {
     }
 
     // Trim the 'ON_' prefix, convert to int, remove duplicates
-    final recurrenceSet = recurrenceOnStr.substring(3).split('').map(int.parse).toSet();
+    final recurrenceSet = recurrenceOnStr
+        .substring(3)
+        .split('')
+        .map(int.parse)
+        .toSet();
 
     // Convert Sonos weekdays to Dart weekdays
     // Sonos starts on Sunday (0), Dart starts on Monday (1)
@@ -580,7 +608,14 @@ class Alarm {
 
     // Begin search from next day if it would have already triggered today
     var offset = 0;
-    final fromTime = DateTime(0, 1, 1, fromDatetime.hour, fromDatetime.minute, fromDatetime.second);
+    final fromTime = DateTime(
+      0,
+      1,
+      1,
+      fromDatetime.hour,
+      fromDatetime.minute,
+      fromDatetime.second,
+    );
     if (!startTime.isAfter(fromTime)) {
       offset += 1;
     }

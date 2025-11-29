@@ -121,7 +121,9 @@ class EventListener extends EventListenerBase {
     }
 
     // Find our local network IP address which is accessible to the Sonos net
-    final sonoIpAddress = anyZone is SoCo ? anyZone.ipAddress : anyZone.toString();
+    final sonoIpAddress = anyZone is SoCo
+        ? anyZone.ipAddress
+        : anyZone.toString();
 
     // Use configured IP address if there is one, else detect automatically
     var ipAddress = config.eventListenerIp;
@@ -156,9 +158,11 @@ class EventListener extends EventListenerBase {
   @override
   Future<int?> listen(String ipAddress) async {
     // Try to bind to the requested port, or find an available one
-    for (var portNumber = requestedPortNumber;
-        portNumber < requestedPortNumber + 100;
-        portNumber++) {
+    for (
+      var portNumber = requestedPortNumber;
+      portNumber < requestedPortNumber + 100;
+      portNumber++
+    ) {
       try {
         _server = await HttpServer.bind(ipAddress, portNumber);
 
@@ -187,8 +191,10 @@ class EventListener extends EventListenerBase {
       }
     }
 
-    _log.severe('Could not find an available port in range '
-        '$requestedPortNumber-${requestedPortNumber + 100}');
+    _log.severe(
+      'Could not find an available port in range '
+      '$requestedPortNumber-${requestedPortNumber + 100}',
+    );
     return null;
   }
 
@@ -233,7 +239,10 @@ class Subscription extends SubscriptionBase {
   Subscription(super.service, {super.broadcast = true});
 
   @override
-  Future<void> subscribe({int? requestedTimeout, bool autoRenew = false}) async {
+  Future<void> subscribe({
+    int? requestedTimeout,
+    bool autoRenew = false,
+  }) async {
     this.requestedTimeout = requestedTimeout;
 
     if (isSubscribed) {
@@ -286,7 +295,10 @@ class Subscription extends SubscriptionBase {
     );
   }
 
-  void _onSubscribeSuccess(Map<String, String> headers, {bool autoRenew = false}) {
+  void _onSubscribeSuccess(
+    Map<String, String> headers, {
+    bool autoRenew = false,
+  }) {
     sid = headers['sid'];
     final timeoutStr = headers['timeout'] ?? '';
 
@@ -296,7 +308,10 @@ class Subscription extends SubscriptionBase {
     if (timeoutStr.toLowerCase() == 'infinite') {
       timeout = null;
     } else {
-      final match = RegExp(r'second-(\d+)', caseSensitive: false).firstMatch(timeoutStr);
+      final match = RegExp(
+        r'second-(\d+)',
+        caseSensitive: false,
+      ).firstMatch(timeoutStr);
       if (match != null) {
         timeout = int.parse(match.group(1)!);
       }
@@ -305,7 +320,9 @@ class Subscription extends SubscriptionBase {
     timestamp = DateTime.now().millisecondsSinceEpoch / 1000.0;
     isSubscribed = true;
 
-    _log.fine('Subscribed to ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid');
+    _log.fine(
+      'Subscribed to ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid',
+    );
 
     // Register the subscription so it can be looked up by sid
     subscriptionsMap.register(this);
@@ -320,7 +337,9 @@ class Subscription extends SubscriptionBase {
 
   @override
   Future<void> renew({int? requestedTimeout, bool isAutorenew = false}) async {
-    final logMsg = isAutorenew ? 'Autorenewing subscription $sid' : 'Renewing subscription $sid';
+    final logMsg = isAutorenew
+        ? 'Autorenewing subscription $sid'
+        : 'Renewing subscription $sid';
     _log.fine(logMsg);
 
     if (hasBeenUnsubscribed) {
@@ -363,7 +382,10 @@ class Subscription extends SubscriptionBase {
     if (timeoutStr.toLowerCase() == 'infinite') {
       timeout = null;
     } else {
-      final match = RegExp(r'second-(\d+)', caseSensitive: false).firstMatch(timeoutStr);
+      final match = RegExp(
+        r'second-(\d+)',
+        caseSensitive: false,
+      ).firstMatch(timeoutStr);
       if (match != null) {
         timeout = int.parse(match.group(1)!);
       }
@@ -372,7 +394,9 @@ class Subscription extends SubscriptionBase {
     timestamp = DateTime.now().millisecondsSinceEpoch / 1000.0;
     isSubscribed = true;
 
-    _log.fine('Renewed subscription to ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid');
+    _log.fine(
+      'Renewed subscription to ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid',
+    );
   }
 
   @override
@@ -408,7 +432,9 @@ class Subscription extends SubscriptionBase {
   }
 
   void _onUnsubscribeSuccess(Map<String, String> headers) {
-    _log.fine('Unsubscribed from ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid');
+    _log.fine(
+      'Unsubscribed from ${service.baseUrl}${service.eventSubscriptionUrl}, sid: $sid',
+    );
   }
 
   /// Send an HTTP request for subscription operations.
@@ -446,8 +472,12 @@ class Subscription extends SubscriptionBase {
           onSuccess(responseHeaders);
         }
       } else {
-        _log.warning('$method request failed with status ${response.statusCode}: ${response.body}');
-        throw SoCoException('$method request failed with status ${response.statusCode}');
+        _log.warning(
+          '$method request failed with status ${response.statusCode}: ${response.body}',
+        );
+        throw SoCoException(
+          '$method request failed with status ${response.statusCode}',
+        );
       }
     } catch (e) {
       _log.warning('Error during $method request: $e');

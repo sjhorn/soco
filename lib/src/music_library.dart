@@ -47,7 +47,7 @@ class MusicLibrary {
   ///   - [soco]: A SoCo instance to query for music library information.
   ///     If `null`, a random SoCo instance will be used.
   MusicLibrary(SoCo? soco)
-      : soco = soco ?? (throw ArgumentError('SoCo instance required')) {
+    : soco = soco ?? (throw ArgumentError('SoCo instance required')) {
     contentDirectory = this.soco.contentDirectory;
   }
 

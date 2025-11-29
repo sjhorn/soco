@@ -695,7 +695,11 @@ class SearchResult {
 }
 
 // Initialize the class mapping and circular reference
-void _initializeDidlClasses() {
+/// Initializes the DIDL class mappings.
+///
+/// This is called automatically when the library is imported, but can be
+/// called manually if needed for testing.
+void initializeDidlClasses() {
   // Register all classes
   _didlClassToClass['object'] = DidlObject;
   _didlClassToClass['object.item'] = DidlItem;
@@ -723,5 +727,5 @@ void _initializeDidlClasses() {
 // Auto-initialize when module loads
 // ignore: unused_element
 final _autoInit = (() {
-  _initializeDidlClasses();
+  initializeDidlClasses();
 })();
