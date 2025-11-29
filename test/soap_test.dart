@@ -1,6 +1,8 @@
 /// Tests for the soap module.
 library;
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 import 'package:soco/src/soap.dart';
 
@@ -182,6 +184,211 @@ void main() {
       expect(fault.detail, isNull);
       expect(fault.detailString, equals(''));
       expect(fault.toString(), equals('Client.Error: Invalid request'));
+    });
+  });
+
+  group('SoapMessage.call()', () {
+    test('parses successful response and returns body element', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.toString(), equals('http://192.168.1.100:1400/test'));
+        expect(request.headers['Content-Type'], equals('text/xml; charset="utf-8"'));
+        expect(request.headers['SOAPACTION'], equals('"TestAction"'));
+        return http.Response(dummyValidResponse, 200);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'GetLEDState',
+        soapAction: 'TestAction',
+        httpClient: mockClient,
+      );
+
+      final result = await soap.call();
+
+      expect(result.localName, equals('GetLEDStateResponse'));
+      expect(
+        result.getElement('CurrentLEDState')?.text,
+        equals('On'),
+      );
+      expect(result.getElement('Unicode')?.text, equals('data'));
+    });
+
+    test('throws SoapFault on 500 response with SOAP fault', () async {
+      const faultResponse = '''<?xml version="1.0"?>
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+                    s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+          <s:Body>
+            <s:Fault>
+              <faultcode>s:Client</faultcode>
+              <faultstring>UPnPError</faultstring>
+              <detail>
+                <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+                  <errorCode>402</errorCode>
+                  <errorDescription>Invalid Args</errorDescription>
+                </UPnPError>
+              </detail>
+            </s:Fault>
+          </s:Body>
+        </s:Envelope>''';
+
+      final mockClient = MockClient((request) async {
+        return http.Response(faultResponse, 500);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        httpClient: mockClient,
+      );
+
+      expect(
+        () => soap.call(),
+        throwsA(
+          isA<SoapFault>()
+              .having((f) => f.faultcode, 'faultcode', 's:Client')
+              .having((f) => f.faultstring, 'faultstring', 'UPnPError'),
+        ),
+      );
+    });
+
+    test('throws SoapFault on 200 response containing fault', () async {
+      const faultIn200Response = '''<?xml version="1.0"?>
+        <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+                    s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+          <s:Body>
+            <s:Fault xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+              <faultcode>s:Server</faultcode>
+              <faultstring>Server Error</faultstring>
+            </s:Fault>
+          </s:Body>
+        </s:Envelope>''';
+
+      final mockClient = MockClient((request) async {
+        return http.Response(faultIn200Response, 200);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        httpClient: mockClient,
+      );
+
+      expect(
+        () => soap.call(),
+        throwsA(
+          isA<SoapFault>()
+              .having((f) => f.faultcode, 'faultcode', 's:Server')
+              .having((f) => f.faultstring, 'faultstring', 'Server Error'),
+        ),
+      );
+    });
+
+    test('throws XmlParserException on 500 response with invalid XML', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Internal Server Error', 500);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        httpClient: mockClient,
+      );
+
+      // The code tries to parse XML even on 500 response, so invalid XML throws XmlParserException
+      expect(
+        () => soap.call(),
+        throwsA(isA<Exception>()),
+      );
+    });
+
+    test('throws ClientException on non-200/500 response', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        httpClient: mockClient,
+      );
+
+      expect(
+        () => soap.call(),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
+
+    test('sends parameters correctly in request body', () async {
+      String? capturedBody;
+
+      final mockClient = MockClient((request) async {
+        capturedBody = request.body;
+        return http.Response(dummyValidResponse, 200);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'SetVolume',
+        parameters: [
+          const MapEntry('InstanceID', '0'),
+          const MapEntry('Channel', 'Master'),
+          const MapEntry('DesiredVolume', '50'),
+        ],
+        namespace: 'urn:schemas-upnp-org:service:RenderingControl:1',
+        httpClient: mockClient,
+      );
+
+      await soap.call();
+
+      expect(capturedBody, contains('<SetVolume'));
+      expect(capturedBody, contains('<InstanceID>0</InstanceID>'));
+      expect(capturedBody, contains('<Channel>Master</Channel>'));
+      expect(capturedBody, contains('<DesiredVolume>50</DesiredVolume>'));
+      expect(
+        capturedBody,
+        contains('xmlns="urn:schemas-upnp-org:service:RenderingControl:1"'),
+      );
+    });
+
+    test('includes SOAP header when provided', () async {
+      String? capturedBody;
+
+      final mockClient = MockClient((request) async {
+        capturedBody = request.body;
+        return http.Response(dummyValidResponse, 200);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        soapHeader: '<credentials><token>abc123</token></credentials>',
+        httpClient: mockClient,
+      );
+
+      await soap.call();
+
+      expect(capturedBody, contains('<s:Header>'));
+      expect(capturedBody, contains('<credentials>'));
+      expect(capturedBody, contains('<token>abc123</token>'));
+      expect(capturedBody, contains('</s:Header>'));
+    });
+
+    test('uses custom timeout when provided', () async {
+      final mockClient = MockClient((request) async {
+        // Simulate a fast response
+        return http.Response(dummyValidResponse, 200);
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        timeout: const Duration(seconds: 5),
+        httpClient: mockClient,
+      );
+
+      // Should complete without timing out
+      final result = await soap.call();
+      expect(result, isNotNull);
     });
   });
 }

@@ -74,6 +74,9 @@ class SoapMessage {
   /// Optional timeout for the HTTP request
   final Duration? timeout;
 
+  /// Optional HTTP client for testing. If null, uses http.post directly.
+  final http.Client? httpClient;
+
   /// Creates a SOAP message.
   ///
   /// Parameters:
@@ -90,6 +93,8 @@ class SoapMessage {
   ///     Default null.
   ///   - [timeout]: Timeout for the HTTP request. If not specified, uses
   ///     [config.requestTimeout].
+  ///   - [httpClient]: Optional HTTP client for testing. If null, uses the
+  ///     default http.post function.
   SoapMessage({
     required this.endpoint,
     required this.method,
@@ -99,6 +104,7 @@ class SoapMessage {
     this.soapHeader,
     this.namespace,
     this.timeout,
+    this.httpClient,
   });
 
   /// Prepare the http headers for sending.
@@ -238,9 +244,19 @@ class SoapMessage {
             ? Duration(seconds: config.requestTimeout!.toInt())
             : null);
 
-    final response = await http
-        .post(Uri.parse(endpoint), headers: headers, body: utf8.encode(data))
-        .timeout(effectiveTimeout ?? const Duration(seconds: 20));
+    // Use injected client if available, otherwise use http.post directly
+    final http.Response response;
+    final uri = Uri.parse(endpoint);
+    final body = utf8.encode(data);
+    if (httpClient != null) {
+      response = await httpClient!
+          .post(uri, headers: headers, body: body)
+          .timeout(effectiveTimeout ?? const Duration(seconds: 20));
+    } else {
+      response = await http
+          .post(uri, headers: headers, body: body)
+          .timeout(effectiveTimeout ?? const Duration(seconds: 20));
+    }
 
     _log.fine('Received ${response.headers}, ${response.body}');
 
