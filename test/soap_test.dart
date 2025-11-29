@@ -4,6 +4,7 @@ library;
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
+import 'package:xml/xml.dart';
 import 'package:soco/src/soap.dart';
 
 const dummyValidResponse =
@@ -206,11 +207,16 @@ void main() {
       final result = await soap.call();
 
       expect(result.localName, equals('GetLEDStateResponse'));
-      expect(
-        result.getElement('CurrentLEDState')?.text,
-        equals('On'),
-      );
-      expect(result.getElement('Unicode')?.text, equals('data'));
+      // Access child elements by filtering by name
+      final currentLedState = result.childElements
+          .where((e) => e.localName == 'CurrentLEDState')
+          .first;
+      expect(currentLedState.innerText, equals('On'));
+
+      final unicode = result.childElements
+          .where((e) => e.localName == 'Unicode')
+          .first;
+      expect(unicode.innerText, equals('data'));
     });
 
     test('throws SoapFault on 500 response with SOAP fault', () async {

@@ -155,6 +155,9 @@ class Service {
   /// A cache for storing the result of network calls
   late final BaseCache cache;
 
+  /// Optional HTTP client for testing. If null, uses http.post directly.
+  http.Client? httpClient;
+
   /// Caching variable for actions
   List<Action>? _actions;
 
@@ -416,13 +419,19 @@ class Service {
         : const Duration(seconds: 20);
 
     try {
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl$controlUrl'),
-            headers: headers,
-            body: utf8.encode(body),
-          )
-          .timeout(timeout);
+      // Use injected client if available, otherwise use http.post directly
+      final http.Response response;
+      final uri = Uri.parse('$baseUrl$controlUrl');
+      final bodyBytes = utf8.encode(body);
+      if (httpClient != null) {
+        response = await httpClient!
+            .post(uri, headers: headers, body: bodyBytes)
+            .timeout(timeout);
+      } else {
+        response = await http
+            .post(uri, headers: headers, body: bodyBytes)
+            .timeout(timeout);
+      }
 
       _log.fine('Received: ${response.statusCode} - ${response.body}');
 
