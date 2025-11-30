@@ -3,6 +3,7 @@ library;
 
 import 'package:soco/src/core.dart';
 import 'package:soco/src/discovery.dart';
+import 'package:soco/src/groups.dart';
 
 Future<void> main() async {
   print('=== Dart SoCo Integration Tests ===\n');
@@ -164,6 +165,99 @@ Future<void> main() async {
     print('Status light on: $light');
   } catch (e) {
     print('Status light error: $e');
+  }
+
+  // Test groups
+  print('\n=== Group Tests ===');
+  try {
+    final isCoord = await device.isCoordinator;
+    print('Is coordinator: $isCoord');
+
+    // Get device's group
+    final deviceGroup = await device.group;
+    if (deviceGroup != null) {
+      final groupCoord = (deviceGroup as ZoneGroup).coordinator;
+      final coordName = await groupCoord.playerName;
+      print('Group coordinator: $coordName (${groupCoord.ipAddress})');
+      print('Group members: ${deviceGroup.members.length}');
+      for (final member in deviceGroup.members) {
+        final memberName = await member.playerName;
+        print('  - $memberName (${member.ipAddress})');
+      }
+    }
+
+    // Test all groups in household
+    final allGroups = await device.allGroups;
+    print('\nAll groups in household: ${allGroups.length}');
+    for (final grp in allGroups) {
+      final group = grp as ZoneGroup;
+      final groupCoordName = await group.coordinator.playerName;
+      print('  Group: $groupCoordName (${group.members.length} members)');
+    }
+  } catch (e) {
+    print('Group test error: $e');
+  }
+
+  // Test sleep timer
+  print('\n=== Sleep Timer Tests ===');
+  try {
+    final sleepTimer = await device.getSleepTimer();
+    print('Sleep timer: $sleepTimer');
+  } catch (e) {
+    print('Sleep timer error: $e');
+  }
+
+  // Test available actions
+  print('\n=== Available Actions Test ===');
+  try {
+    final actions = await device.availableActions;
+    print('Available actions: $actions');
+  } catch (e) {
+    print('Available actions error: $e');
+  }
+
+  // Test is_playing_tv
+  print('\n=== TV/Line-in Tests ===');
+  try {
+    final playingTv = await device.isPlayingTv;
+    print('Is playing TV: $playingTv');
+
+    final playingLineIn = await device.isPlayingLineIn;
+    print('Is playing Line-in: $playingLineIn');
+
+    final playingRadio = await device.isPlayingRadio;
+    print('Is playing Radio: $playingRadio');
+  } catch (e) {
+    print('TV/Line-in test error: $e');
+  }
+
+  // Test music library (if available)
+  print('\n=== Music Library Tests ===');
+  try {
+    final library = device.musicLibrary;
+    final result = await library.getArtists(maxItems: 5);
+    print('Artists in library: ${result.numberReturned} returned, ${result.totalMatches} total');
+    for (final artist in result.items) {
+      print('  - ${artist.title}');
+    }
+  } catch (e) {
+    print('Music library error: $e');
+  }
+
+  // Test all zones
+  print('\n=== All Zones Tests ===');
+  try {
+    final allZones = await device.allZones;
+    print('All zones: ${allZones.length}');
+    for (final zone in allZones) {
+      final zoneName = await zone.playerName;
+      print('  - $zoneName (${zone.ipAddress})');
+    }
+
+    final visibleZones = await device.visibleZones;
+    print('Visible zones: ${visibleZones.length}');
+  } catch (e) {
+    print('All zones error: $e');
   }
 
   print('\n=== Integration Tests Complete ===');
