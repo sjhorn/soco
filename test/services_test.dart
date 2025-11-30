@@ -516,7 +516,8 @@ void main() {
 
     test('controlUrl is correctly formed', () {
       final service = RenderingControl(device);
-      expect(service.controlUrl, equals('/RenderingControl/Control'));
+      expect(
+          service.controlUrl, equals('/MediaRenderer/RenderingControl/Control'));
     });
 
     test('AudioIn has correct service type', () {

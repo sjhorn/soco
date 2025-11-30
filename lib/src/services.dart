@@ -672,13 +672,18 @@ class QPlay extends Service {
 class ContentDirectory extends Service {
   ContentDirectory(super.soco) {
     serviceType = 'ContentDirectory';
+    controlUrl = '/MediaServer/ContentDirectory/Control';
+    eventSubscriptionUrl = '/MediaServer/ContentDirectory/Event';
+    additionalHeaders = {'USER-AGENT': 'Sonos/83.1-61210'};
   }
 }
 
-/// Sonos connection manager service.
+/// Sonos connection manager service for the media server.
 class MSConnectionManager extends Service {
   MSConnectionManager(super.soco) {
     serviceType = 'ConnectionManager';
+    controlUrl = '/MediaServer/ConnectionManager/Control';
+    eventSubscriptionUrl = '/MediaServer/ConnectionManager/Event';
   }
 }
 
@@ -686,13 +691,18 @@ class MSConnectionManager extends Service {
 class RenderingControl extends Service {
   RenderingControl(super.soco) {
     serviceType = 'RenderingControl';
+    controlUrl = '/MediaRenderer/RenderingControl/Control';
+    eventSubscriptionUrl = '/MediaRenderer/RenderingControl/Event';
+    defaultArgs = {'InstanceID': 0};
   }
 }
 
-/// Sonos connection manager service.
+/// Sonos connection manager service for the media renderer.
 class MRConnectionManager extends Service {
   MRConnectionManager(super.soco) {
     serviceType = 'ConnectionManager';
+    controlUrl = '/MediaRenderer/ConnectionManager/Control';
+    eventSubscriptionUrl = '/MediaRenderer/ConnectionManager/Event';
   }
 }
 
@@ -700,6 +710,9 @@ class MRConnectionManager extends Service {
 class AVTransport extends Service {
   AVTransport(super.soco) {
     serviceType = 'AVTransport';
+    controlUrl = '/MediaRenderer/AVTransport/Control';
+    eventSubscriptionUrl = '/MediaRenderer/AVTransport/Event';
+    defaultArgs = {'InstanceID': 0};
   }
 }
 
@@ -707,6 +720,8 @@ class AVTransport extends Service {
 class Queue extends Service {
   Queue(super.soco) {
     serviceType = 'Queue';
+    controlUrl = '/MediaRenderer/Queue/Control';
+    eventSubscriptionUrl = '/MediaRenderer/Queue/Event';
   }
 }
 
@@ -714,6 +729,9 @@ class Queue extends Service {
 class GroupRenderingControl extends Service {
   GroupRenderingControl(super.soco) {
     serviceType = 'GroupRenderingControl';
+    controlUrl = '/MediaRenderer/GroupRenderingControl/Control';
+    eventSubscriptionUrl = '/MediaRenderer/GroupRenderingControl/Event';
+    defaultArgs = {'InstanceID': 0};
   }
 }
 
