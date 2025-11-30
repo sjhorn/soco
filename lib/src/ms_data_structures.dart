@@ -10,22 +10,37 @@ import 'xml.dart' as soco_xml;
 // Global mapping of MS item types to classes
 final Map<String, Type> _msTypeToClass = {};
 
+/// Find elements matching a local name within a specific namespace.
+///
+/// The Dart xml package's findElements uses local names only.
+/// This helper finds elements that match both local name and namespace.
+Iterable<XmlElement> _findElementsNs(
+    XmlElement xml, String nsUri, String localName) {
+  return xml.findElements(localName).where(
+        (e) => e.name.namespaceUri == nsUri || e.name.namespaceUri == null,
+      );
+}
+
 /// Return the music service item that corresponds to xml.
 ///
 /// The class is identified by getting the type from the 'itemType' tag.
 MusicServiceItem getMsItem(XmlElement xml, dynamic service, String parentId) {
-  final itemType = xml
-      .findElements(soco_xml.nsTag('ms', 'itemType'))
-      .first
-      .innerText;
+  // Find itemType element - try both namespaced and non-namespaced
+  final itemTypeElements = _findElementsNs(
+    xml,
+    soco_xml.namespaces['ms']!,
+    'itemType',
+  );
 
-  final cls = _msTypeToClass[itemType];
-  if (cls == null) {
-    throw ArgumentError('Unknown music service item type: $itemType');
+  if (itemTypeElements.isEmpty) {
+    throw StateError(
+        'No itemType element found in XML. '
+        'XML contains: ${xml.childElements.map((e) => e.name.local).toList()}');
   }
 
-  // This would need dynamic instantiation based on class type
-  // For now, we'll use a switch statement
+  final itemType = itemTypeElements.first.innerText;
+
+  // Create the appropriate music service item based on type
   switch (itemType) {
     case 'track':
       return MSTrack.fromXml(xml, service, parentId);

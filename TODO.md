@@ -8,9 +8,9 @@
 |--------|-------------|-----------|
 | Source files | 34 | 32 |
 | Source lines | ~28,000 | ~22,000 |
-| Test files | 20 | 21 |
-| Unit tests | - | 815 |
-| Code coverage | - | 74%* |
+| Test files | 20 | 22 |
+| Unit tests | - | 838 |
+| Code coverage | - | 81% |
 | Examples | - | 7 |
 
 ---
@@ -95,9 +95,8 @@
 
 - Integration tests with real Sonos devices
 - Performance benchmarking
-- HTTP mocking for wimp plugin tests (to reach 80% coverage)
 
-*Note: Coverage was 80% before adding wimp.dart plugin. The wimp plugin has network-dependent async methods that require HTTP mocking. Coverage improved from 70% to 74% with additional tests for ms_data_structures and static methods.
+*Note: Coverage target of 80% achieved! Added HTTP mocking for wimp plugin and fixed getMsItem namespace parsing bug.
 
 ---
 
@@ -107,6 +106,6 @@
 dart pub get          # Install dependencies
 dart analyze          # Check for issues (should be zero)
 dart format .         # Format code
-dart test             # Run tests (815 tests)
+dart test             # Run tests (838 tests)
 dart pub publish      # Publish to pub.dev
 ```

@@ -255,6 +255,202 @@ const sampleZoneGroupState = '''
 </ZoneGroupState>
 ''';
 
+/// Wimp/Tidal music service SOAP response templates.
+class WimpResponses {
+  static const _msNs = 'http://www.sonos.com/Services/1.1';
+
+  /// Search response with tracks
+  static String searchTracks({
+    required List<Map<String, String>> tracks,
+    int index = 0,
+    int? total,
+  }) {
+    final count = tracks.length;
+    total ??= count;
+
+    final trackXml = tracks.map((t) => '''
+      <mediaMetadata xmlns="$_msNs">
+        <id>${t['id'] ?? 'trackid_123'}</id>
+        <itemType>track</itemType>
+        <title>${t['title'] ?? 'Unknown Track'}</title>
+        <mimeType>${t['mimeType'] ?? 'audio/aac'}</mimeType>
+        <trackMetadata>
+          <artistId>${t['artistId'] ?? 'artistid_1'}</artistId>
+          <artist>${t['artist'] ?? 'Unknown Artist'}</artist>
+          <albumId>${t['albumId'] ?? 'albumid_1'}</albumId>
+          <album>${t['album'] ?? 'Unknown Album'}</album>
+          <duration>${t['duration'] ?? '180'}</duration>
+          <canPlay>${t['canPlay'] ?? 'true'}</canPlay>
+        </trackMetadata>
+      </mediaMetadata>
+    ''').join('\n');
+
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <searchResponse xmlns="$_msNs">
+      <searchResult>
+        <index>$index</index>
+        <count>$count</count>
+        <total>$total</total>
+        $trackXml
+      </searchResult>
+    </searchResponse>
+  </s:Body>
+</s:Envelope>''';
+  }
+
+  /// Search response with albums
+  static String searchAlbums({
+    required List<Map<String, String>> albums,
+    int index = 0,
+    int? total,
+  }) {
+    final count = albums.length;
+    total ??= count;
+
+    final albumXml = albums.map((a) => '''
+      <mediaCollection xmlns="$_msNs">
+        <id>${a['id'] ?? 'albumid_123'}</id>
+        <itemType>album</itemType>
+        <title>${a['title'] ?? 'Unknown Album'}</title>
+        <artistId>${a['artistId'] ?? 'artistid_1'}</artistId>
+        <artist>${a['artist'] ?? 'Unknown Artist'}</artist>
+        <canPlay>${a['canPlay'] ?? 'true'}</canPlay>
+      </mediaCollection>
+    ''').join('\n');
+
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <searchResponse xmlns="$_msNs">
+      <searchResult>
+        <index>$index</index>
+        <count>$count</count>
+        <total>$total</total>
+        $albumXml
+      </searchResult>
+    </searchResponse>
+  </s:Body>
+</s:Envelope>''';
+  }
+
+  /// Search response with artists
+  static String searchArtists({
+    required List<Map<String, String>> artists,
+    int index = 0,
+    int? total,
+  }) {
+    final count = artists.length;
+    total ??= count;
+
+    final artistXml = artists.map((a) => '''
+      <mediaCollection xmlns="$_msNs">
+        <id>${a['id'] ?? 'artistid_123'}</id>
+        <itemType>artist</itemType>
+        <title>${a['title'] ?? 'Unknown Artist'}</title>
+        <canPlay>${a['canPlay'] ?? 'false'}</canPlay>
+      </mediaCollection>
+    ''').join('\n');
+
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <searchResponse xmlns="$_msNs">
+      <searchResult>
+        <index>$index</index>
+        <count>$count</count>
+        <total>$total</total>
+        $artistXml
+      </searchResult>
+    </searchResponse>
+  </s:Body>
+</s:Envelope>''';
+  }
+
+  /// Browse root response
+  static String browseRoot({
+    required List<Map<String, String>> collections,
+    int index = 0,
+    int? total,
+  }) {
+    final count = collections.length;
+    total ??= count;
+
+    final collectionXml = collections.map((c) => '''
+      <mediaCollection xmlns="$_msNs">
+        <id>${c['id'] ?? 'collection_123'}</id>
+        <itemType>${c['itemType'] ?? 'collection'}</itemType>
+        <title>${c['title'] ?? 'Unknown Collection'}</title>
+        <canPlay>${c['canPlay'] ?? 'false'}</canPlay>
+      </mediaCollection>
+    ''').join('\n');
+
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <getMetadataResponse xmlns="$_msNs">
+      <getMetadataResult>
+        <index>$index</index>
+        <count>$count</count>
+        <total>$total</total>
+        $collectionXml
+      </getMetadataResult>
+    </getMetadataResponse>
+  </s:Body>
+</s:Envelope>''';
+  }
+
+  /// Error response (SOAP Fault)
+  static String error({
+    String faultstring = 'ItemNotFound',
+    String faultcode = 's:Client',
+  }) {
+    return '''<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <Fault>
+      <faultcode>$faultcode</faultcode>
+      <faultstring>$faultstring</faultstring>
+    </Fault>
+  </s:Body>
+</s:Envelope>''';
+  }
+
+  /// GetSessionId response
+  static String getSessionId(String sessionId) {
+    return soapEnvelope('''
+    <u:GetSessionIdResponse xmlns:u="urn:schemas-upnp-org:service:MusicServices:1">
+      <SessionId>$sessionId</SessionId>
+    </u:GetSessionIdResponse>''');
+  }
+
+  /// GetSpeakerInfo response
+  static String getSpeakerInfo({
+    String serialNumber = 'XX-XX-XX-XX-XX-XX',
+    String softwareVersion = '12.0',
+    String displaySoftwareVersion = 'S2 12.0',
+    String hardwareVersion = '1.0',
+    String modelName = 'Sonos One',
+    String modelNumber = 'S13',
+    String macAddress = 'XX:XX:XX:XX:XX:XX',
+  }) {
+    return soapEnvelope('''
+    <u:GetZoneInfoResponse xmlns:u="urn:schemas-upnp-org:service:DeviceProperties:1">
+      <SerialNumber>$serialNumber</SerialNumber>
+      <SoftwareVersion>$softwareVersion</SoftwareVersion>
+      <DisplaySoftwareVersion>$displaySoftwareVersion</DisplaySoftwareVersion>
+      <HardwareVersion>$hardwareVersion</HardwareVersion>
+      <IPAddress>192.168.1.100</IPAddress>
+      <MACAddress>$macAddress</MACAddress>
+      <CopyrightInfo>© 2004-2022 Sonos, Inc. All Rights Reserved.</CopyrightInfo>
+      <ExtraInfo></ExtraInfo>
+      <HTAudioIn>0</HTAudioIn>
+      <Flags>0</Flags>
+    </u:GetZoneInfoResponse>''');
+  }
+}
+
 /// Sample device description XML for testing.
 const sampleDeviceDescription = '''<?xml version="1.0"?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">

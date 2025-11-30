@@ -22,6 +22,8 @@
 ///   playable, the containing data structure like e.g. the album they are
 ///   on may report that they are playable. Trying to add one of these to
 ///   the queue will return a SoCoUPnPException with error code '802'.
+///
+/// The plugin supports dependency injection of the HTTP client for testing.
 library;
 
 import 'dart:async';
@@ -102,31 +104,43 @@ Map<String, String> _getHeader(String soapAction) {
 }
 
 /// Perform an HTTP POST with retries.
+///
+/// If [client] is provided, it will be used for the request (useful for testing).
+/// Otherwise, a default HTTP client is used.
 Future<http.Response> _post(
   String url,
   Map<String, String> headers,
   String body, {
   int retries = 3,
   double timeout = 3.0,
+  http.Client? client,
 }) async {
   http.Response? response;
   var retry = 0;
+  final httpClient = client ?? http.Client();
+  final shouldClose = client == null; // Only close if we created it
 
-  while (response == null) {
-    try {
-      response = await http
-          .post(
-            Uri.parse(url),
-            headers: headers,
-            body: body,
-          )
-          .timeout(Duration(milliseconds: (timeout * 1000).toInt()));
-    } on Exception {
-      // Handle TimeoutException, SocketException, etc.
-      retry++;
-      if (retry == retries) {
-        rethrow;
+  try {
+    while (response == null) {
+      try {
+        response = await httpClient
+            .post(
+              Uri.parse(url),
+              headers: headers,
+              body: body,
+            )
+            .timeout(Duration(milliseconds: (timeout * 1000).toInt()));
+      } on Exception {
+        // Handle TimeoutException, SocketException, etc.
+        retry++;
+        if (retry == retries) {
+          rethrow;
+        }
       }
+    }
+  } finally {
+    if (shouldClose) {
+      httpClient.close();
     }
   }
 
@@ -142,7 +156,7 @@ class WimpPlugin extends SoCoPlugin {
   final String _url = 'http://client.wimpmusic.com/sonos/services/Sonos';
 
   /// The serial number of the speaker
-  late final String _serialNumber;
+  String _serialNumber;
 
   /// The username for the music service
   final String _username;
@@ -155,13 +169,16 @@ class WimpPlugin extends SoCoPlugin {
   final double _timeout;
 
   /// The session ID for authenticated requests
-  late final String _sessionId;
+  String _sessionId;
 
   /// The MusicServices instance
-  late final MusicServices _musicServices;
+  MusicServices? _musicServices;
 
   /// Whether the plugin has been initialized
   bool _initialized = false;
+
+  /// Optional HTTP client for dependency injection (testing)
+  final http.Client? _httpClient;
 
   /// Initialize the plugin.
   ///
@@ -172,6 +189,7 @@ class WimpPlugin extends SoCoPlugin {
   ///   - [timeout]: The time to wait for the post to complete, before timing out.
   ///     The Wimp server seems either slow to respond or to make the queries
   ///     internally, so the timeout should probably not be shorter than 3 seconds.
+  ///   - [httpClient]: Optional HTTP client for dependency injection (testing)
   ///
   /// Note:
   ///   If you are using a phone number as the username and are
@@ -184,8 +202,32 @@ class WimpPlugin extends SoCoPlugin {
     this._username, {
     int retries = 3,
     double timeout = 3.0,
+    http.Client? httpClient,
   })  : _retries = retries,
-        _timeout = timeout;
+        _timeout = timeout,
+        _httpClient = httpClient,
+        _sessionId = '',
+        _serialNumber = '';
+
+  /// Create a WimpPlugin for testing with pre-set initialization values.
+  ///
+  /// This constructor bypasses the network calls needed for initialization
+  /// and allows testing the search and browse functionality directly.
+  WimpPlugin.forTesting({
+    required String username,
+    required String sessionId,
+    required String serialNumber,
+    int retries = 3,
+    double timeout = 3.0,
+    http.Client? httpClient,
+  })  : _username = username,
+        _retries = retries,
+        _timeout = timeout,
+        _httpClient = httpClient,
+        _sessionId = sessionId,
+        _serialNumber = serialNumber,
+        _initialized = true,
+        super(null);
 
   /// Initialize the plugin by getting speaker info and session ID.
   Future<void> _ensureInitialized() async {
@@ -194,8 +236,9 @@ class WimpPlugin extends SoCoPlugin {
     final speakerInfo = await (soco as SoCo).getSpeakerInfo();
     _serialNumber = speakerInfo['serial_number'] ?? '';
 
-    _musicServices = MusicServices(soco as SoCo);
-    final response = await _musicServices.sendCommand(
+    final musicServices = MusicServices(soco as SoCo);
+    _musicServices = musicServices;
+    final response = await musicServices.sendCommand(
       'GetSessionId',
       args: [
         const MapEntry('ServiceId', 20),
@@ -312,6 +355,7 @@ class WimpPlugin extends SoCoPlugin {
       body,
       retries: _retries,
       timeout: _timeout,
+      client: _httpClient,
     );
     _checkForErrors(response);
 
@@ -377,6 +421,7 @@ class WimpPlugin extends SoCoPlugin {
       body,
       retries: _retries,
       timeout: _timeout,
+      client: _httpClient,
     );
 
     // Check for errors and get XML
