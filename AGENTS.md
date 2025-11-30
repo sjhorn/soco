@@ -152,8 +152,8 @@ This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo) f
 | Core modules | 18/18 ported |
 | Music services | 5/5 ported |
 | Plugins | 5/5 ported |
-| Unit tests | 718 passing |
-| Code coverage | 80% |
+| Unit tests | 755 passing |
+| Code coverage | 70%* |
 | Examples | 7 |
 
 See [TODO.md](TODO.md) for detailed porting status and future work.
