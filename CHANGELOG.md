@@ -77,5 +77,5 @@ Sonos speakers from Dart applications.
 - Performance optimizations
 - More comprehensive documentation
 
-[0.1.0]: https://github.com/shorn/soco-dart/releases/tag/v0.1.0
-[Unreleased]: https://github.com/shorn/soco-dart/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
+[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.0...HEAD
