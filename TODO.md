@@ -2,7 +2,7 @@
 
 ## Status
 
-**Published:** [soco v0.1.0](https://pub.dev/packages/soco)
+**Published:** [soco v0.1.1](https://pub.dev/packages/soco)
 
 | Metric | Python SoCo | Dart Port |
 |--------|-------------|-----------|
@@ -12,6 +12,7 @@
 | Unit tests | - | 838 |
 | Code coverage | - | 81% |
 | Examples | - | 7 |
+| Integration tested | - | ✓ |
 
 ---
 
@@ -93,10 +94,15 @@
 
 ### Deferred
 
-- Integration tests with real Sonos devices
 - Performance benchmarking
 
-*Note: Coverage target of 80% achieved! Added HTTP mocking for wimp plugin and fixed getMsItem namespace parsing bug.
+### Completed
+
+- ✓ Integration tests with real Sonos devices (v0.1.1)
+- ✓ Fixed UPnP service control URLs for real hardware compatibility
+- ✓ Fixed getSpeakerInfo caching with ZoneGroupState data
+
+*Note: Coverage target of 80% achieved! Integration testing with real Sonos hardware validated all core functionality.
 
 ---
 

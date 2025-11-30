@@ -143,7 +143,7 @@ A: Yes — treat it as living documentation.  [oai_citation:2‡agents.md](https
 
 ## Project Status
 
-**Published:** [soco v0.1.0 on pub.dev](https://pub.dev/packages/soco)
+**Published:** [soco v0.1.1 on pub.dev](https://pub.dev/packages/soco)
 
 This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo) for controlling Sonos speakers programmatically.
 
@@ -155,6 +155,7 @@ This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo) f
 | Unit tests | 838 passing |
 | Code coverage | 81% |
 | Examples | 7 |
+| Integration tested | Real Sonos hardware |
 
 See [TODO.md](TODO.md) for detailed porting status and future work.
 
@@ -164,6 +165,7 @@ See [TODO.md](TODO.md) for detailed porting status and future work.
 - `lib/src/core.dart` - Main SoCo class (120+ methods)
 - `lib/src/discovery.dart` - Device discovery (SSDP + network scan)
 - `lib/src/events.dart` - UPnP event subscriptions (Dart Streams)
+- `test_integration.dart` - Integration test for real hardware
 
 ### Python Source Reference
 
@@ -173,4 +175,5 @@ Python SoCo source is in `./SoCo/soco/` for reference during development.
 
 ## Change History of this File
 - **v0.1.0** — Initial draft based on generic Dart package template
-- **v0.1.0** — Merged CLAUDE.md content, updated with published status  
+- **v0.1.0** — Merged CLAUDE.md content, updated with published status
+- **v0.1.1** — Updated with integration testing status  

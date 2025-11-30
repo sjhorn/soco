@@ -70,6 +70,42 @@ Sonos speakers from Dart applications.
 - Dart naming conventions (camelCase)
 - Immutable data structures where appropriate
 
+## [0.1.1] - 2025-11-30
+
+### Fixed
+
+- **UPnP Service Control URLs**: Fixed incorrect control URLs that caused HTTP 405 errors
+  when communicating with real Sonos hardware. Services now use correct paths:
+  - RenderingControl: `/MediaRenderer/RenderingControl/Control`
+  - AVTransport: `/MediaRenderer/AVTransport/Control`
+  - ContentDirectory: `/MediaServer/ContentDirectory/Control`
+  - And other services with appropriate prefixes
+
+- **getSpeakerInfo Caching**: Fixed issue where `getSpeakerInfo()` would return
+  incomplete data after device discovery. The method now correctly fetches speaker
+  info even when ZoneGroupState data is already present.
+
+### Added
+
+- **Integration Test Suite**: Added comprehensive integration test (`test_integration.dart`)
+  that validates all core functionality against real Sonos hardware:
+  - Discovery (11 devices found)
+  - Volume and mute controls
+  - Transport state and track info
+  - Speaker info (zone name, model, versions)
+  - Group operations (coordinator, members, all groups)
+  - Play mode (shuffle, repeat)
+  - Audio settings (bass, treble, loudness)
+  - Sleep timer and available actions
+  - TV/Line-in/Radio detection
+  - Music library browsing
+  - Zone enumeration (all zones, visible zones)
+
+### Changed
+
+- Updated `services.dart` with proper `eventSubscriptionUrl` and `defaultArgs`
+  for all UPnP services to match Python SoCo implementation
+
 ## [Unreleased]
 
 ### Planned
@@ -80,5 +116,6 @@ Sonos speakers from Dart applications.
 - Performance optimizations
 - Additional dartdoc documentation
 
+[0.1.1]: https://github.com/sjhorn/soco/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
-[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.1...HEAD
