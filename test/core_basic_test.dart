@@ -2473,4 +2473,164 @@ void main() {
     // require uid which calls zoneGroupState.poll(). These require complex ZoneGroupTopology
     // mocking and are better suited for integration tests.
   });
+
+  group('musicSourceFromUri static method', () {
+    test('empty URI returns NONE', () {
+      expect(SoCo.musicSourceFromUri(''), equals('NONE'));
+    });
+
+    test('x-file-cifs returns LIBRARY', () {
+      expect(
+        SoCo.musicSourceFromUri('x-file-cifs://server/share/file.mp3'),
+        equals('LIBRARY'),
+      );
+    });
+
+    test('x-rincon-mp3radio returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('x-rincon-mp3radio://stream.example.com/radio'),
+        equals('RADIO'),
+      );
+    });
+
+    test('x-sonosapi-stream returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonosapi-stream:s12345?sid=254'),
+        equals('RADIO'),
+      );
+    });
+
+    test('x-sonosapi-radio returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonosapi-radio:s12345?sid=254'),
+        equals('RADIO'),
+      );
+    });
+
+    test('x-sonosapi-hls returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonosapi-hls:s12345?sid=254'),
+        equals('RADIO'),
+      );
+    });
+
+    test('x-sonos-http:sonos returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonos-http:sonostts_12345.mp3'),
+        equals('RADIO'),
+      );
+    });
+
+    test('aac: returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('aac://stream.example.com/radio'),
+        equals('RADIO'),
+      );
+    });
+
+    test('hls-radio: returns RADIO', () {
+      expect(
+        SoCo.musicSourceFromUri('hls-radio://stream.example.com/playlist.m3u8'),
+        equals('RADIO'),
+      );
+    });
+
+    test('http: returns WEB_FILE', () {
+      expect(
+        SoCo.musicSourceFromUri('http://example.com/audio.mp3'),
+        equals('WEB_FILE'),
+      );
+    });
+
+    test('https: returns WEB_FILE', () {
+      expect(
+        SoCo.musicSourceFromUri('https://example.com/audio.mp3'),
+        equals('WEB_FILE'),
+      );
+    });
+
+    test('x-rincon-stream returns LINE_IN', () {
+      expect(
+        SoCo.musicSourceFromUri('x-rincon-stream:RINCON_000E5859E49601400'),
+        equals('LINE_IN'),
+      );
+    });
+
+    test('x-sonos-htastream returns TV', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonos-htastream:RINCON_000E5859E49601400:spdif'),
+        equals('TV'),
+      );
+    });
+
+    test('x-sonos-vli with airplay returns AIRPLAY', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonos-vli:RINCON_000E5859E49601400,airplay:DEVICE123'),
+        equals('AIRPLAY'),
+      );
+    });
+
+    test('x-sonos-vli with spotify returns SPOTIFY_CONNECT', () {
+      expect(
+        SoCo.musicSourceFromUri('x-sonos-vli:RINCON_000E5859E49601400,spotify:track123'),
+        equals('SPOTIFY_CONNECT'),
+      );
+    });
+
+    test('unknown URI returns UNKNOWN', () {
+      expect(
+        SoCo.musicSourceFromUri('some-other-protocol://stream'),
+        equals('UNKNOWN'),
+      );
+    });
+
+    test('x-rincon-queue returns UNKNOWN', () {
+      // Queue URIs don't have a source mapping
+      expect(
+        SoCo.musicSourceFromUri('x-rincon-queue:RINCON_000E5859E49601400#0'),
+        equals('UNKNOWN'),
+      );
+    });
+  });
+
+  group('soundbars list', () {
+    test('contains expected products', () {
+      expect(soundbars.contains('arc'), isTrue);
+      expect(soundbars.contains('arc sl'), isTrue);
+      expect(soundbars.contains('arc ultra'), isTrue);
+      expect(soundbars.contains('beam'), isTrue);
+      expect(soundbars.contains('playbase'), isTrue);
+      expect(soundbars.contains('playbar'), isTrue);
+      expect(soundbars.contains('ray'), isTrue);
+      expect(soundbars.contains('sonos amp'), isTrue);
+    });
+
+    test('has expected length', () {
+      expect(soundbars.length, equals(8));
+    });
+  });
+
+  group('sources constant', () {
+    test('contains all music source patterns', () {
+      expect(sources.keys.length, equals(14));
+    });
+
+    test('empty pattern maps to NONE', () {
+      expect(sources[r'^$'], equals('NONE'));
+    });
+  });
+
+  group('favorites constants', () {
+    test('radioStations is 0', () {
+      expect(radioStations, equals(0));
+    });
+
+    test('radioShows is 1', () {
+      expect(radioShows, equals(1));
+    });
+
+    test('sonosFavorites is 2', () {
+      expect(sonosFavorites, equals(2));
+    });
+  });
 }
