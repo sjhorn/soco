@@ -514,7 +514,9 @@ class SoCo {
     bool refresh = false,
     Duration? timeout,
   }) async {
-    if (speakerInfo.isNotEmpty && !refresh) {
+    // Check if we have the actual speaker info (not just internal fields from ZGS)
+    // Internal fields are prefixed with underscore, public fields like 'zone_name' are not
+    if (speakerInfo.containsKey('zone_name') && !refresh) {
       return speakerInfo;
     }
 

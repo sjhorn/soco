@@ -62,7 +62,7 @@ Future<void> main() async {
     final transport = await device.getCurrentTransportInfo();
     print('Transport state: ${transport['current_transport_state']}');
     print('Transport status: ${transport['current_transport_status']}');
-    print('Transport speed: ${transport['current_speed']}');
+    print('Transport speed: ${transport['current_transport_speed']}');
   } catch (e) {
     print('Transport info error: $e');
   }
@@ -85,8 +85,8 @@ Future<void> main() async {
   print('\n=== Media Info Tests ===');
   try {
     final media = await device.getCurrentMediaInfo();
-    print('Number of tracks: ${media['nr_tracks']}');
-    print('Current URI: ${media['current_uri']}');
+    print('URI: ${media['uri']}');
+    print('Channel: ${media['channel']}');
   } catch (e) {
     print('Media info error: $e');
   }
