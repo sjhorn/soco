@@ -1,6 +1,9 @@
-# SoCo (Dart)
+# SoCo - Sonos Controller
 
-A Dart library for controlling Sonos speakers programmatically.
+[![pub package](https://img.shields.io/pub/v/soco.svg)](https://pub.dev/packages/soco)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+A pure Dart library for controlling Sonos speakers programmatically.
 
 This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo), which was originally created at Music Hack Day Sydney by Rahim Sonawalla.
 

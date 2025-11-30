@@ -73,9 +73,12 @@ Sonos speakers from Dart applications.
 ## [Unreleased]
 
 ### Planned
-- Additional music service integrations
+- Voice assistant methods (`voiceServiceConfigured`, `micEnabled`, `setMicEnabled`)
+- Playlist/favorites methods (~20 methods for Sonos playlist management)
+- Enhanced SCPD (Service Control Protocol Description) parsing
+- WIMP/Tidal legacy plugin
 - Performance optimizations
-- More comprehensive documentation
+- Additional dartdoc documentation
 
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
 [Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.0...HEAD

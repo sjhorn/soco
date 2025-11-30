@@ -3,9 +3,10 @@
 ## Project Overview
 This repository is for the Dart package **`soco`**.
 This will be a port of the soco python library available in ./SoCo
-The focus will be porting each file to match the same name and also port the tests and examples to achieve exact input and output match prior to testing with the real sonos devices. The boilerplate from dart create -t package will be replaced with suitable dart files to complete the package. The README.md will follow the docs from ./SoCo and the LICENCE will also match. 
-
+The focus will be porting each file to match the same name and also port the tests and examples to achieve exact input and output match prior to testing with the real sonos devices. The README.md will follow the docs from ./SoCo and the LICENCE will also match. 
 We will aim to create a TODO.md that we maintain and add a git commit and message for each step we take on this porting journey. 
+We will aim to keep our test coverage above 80% and keep 100% API compatibility with the python version where possible in dart idioms.
+We will aim to commit to git after each meaningful milestone with a useful concise comment. 
 
 Key points:
 - Programming language: Dart 
@@ -140,6 +141,36 @@ A: Yes — treat it as living documentation.  [oai_citation:2‡agents.md](https
 
 ---
 
+## Project Status
+
+**Published:** [soco v0.1.0 on pub.dev](https://pub.dev/packages/soco)
+
+This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo) for controlling Sonos speakers programmatically.
+
+| Metric | Value |
+|--------|-------|
+| Core modules | 18/18 ported |
+| Music services | 5/5 ported |
+| Plugins | 5/5 ported |
+| Unit tests | 718 passing |
+| Code coverage | 80% |
+| Examples | 7 |
+
+See [TODO.md](TODO.md) for detailed porting status and future work.
+
+### Key Files
+
+- `lib/soco.dart` - Main library export
+- `lib/src/core.dart` - Main SoCo class (120+ methods)
+- `lib/src/discovery.dart` - Device discovery (SSDP + network scan)
+- `lib/src/events.dart` - UPnP event subscriptions (Dart Streams)
+
+### Python Source Reference
+
+Python SoCo source is in `./SoCo/soco/` for reference during development.
+
+---
+
 ## Change History of this File
-- **v0.1.0** — Initial draft based on generic Dart package template  
-- … (future updates to be listed here)  
+- **v0.1.0** — Initial draft based on generic Dart package template
+- **v0.1.0** — Merged CLAUDE.md content, updated with published status  
