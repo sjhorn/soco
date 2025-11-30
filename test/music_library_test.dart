@@ -1,12 +1,101 @@
 /// Tests for MusicLibrary class.
 library;
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 import 'package:soco/src/music_library.dart';
 import 'package:soco/src/core.dart';
 import 'package:soco/src/data_structures.dart';
+import 'package:soco/src/exceptions.dart';
+
+/// Helper to create a successful Browse SOAP response
+String browseResponse({
+  required String result,
+  int numberReturned = 0,
+  int totalMatches = 0,
+  int updateId = 1,
+}) {
+  // HTML-encode the result for SOAP
+  final encodedResult = result
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+
+  return '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+            s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    <u:BrowseResponse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1">
+      <Result>$encodedResult</Result>
+      <NumberReturned>$numberReturned</NumberReturned>
+      <TotalMatches>$totalMatches</TotalMatches>
+      <UpdateID>$updateId</UpdateID>
+    </u:BrowseResponse>
+  </s:Body>
+</s:Envelope>''';
+}
+
+/// Helper to create a UPnP error response
+String errorResponse(int errorCode, String errorDescription) {
+  return '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+            s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    <s:Fault>
+      <faultcode>s:Client</faultcode>
+      <faultstring>UPnPError</faultstring>
+      <detail>
+        <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+          <errorCode>$errorCode</errorCode>
+          <errorDescription>$errorDescription</errorDescription>
+        </UPnPError>
+      </detail>
+    </s:Fault>
+  </s:Body>
+</s:Envelope>''';
+}
+
+/// Sample DIDL-Lite for artists
+const sampleArtistsDIDL = '''<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
+<container id="A:ARTIST/The%20Beatles" parentID="A:ARTIST" restricted="true">
+<dc:title>The Beatles</dc:title>
+<upnp:class>object.container.person.musicArtist</upnp:class>
+</container>
+<container id="A:ARTIST/Pink%20Floyd" parentID="A:ARTIST" restricted="true">
+<dc:title>Pink Floyd</dc:title>
+<upnp:class>object.container.person.musicArtist</upnp:class>
+</container>
+</DIDL-Lite>''';
+
+/// Sample DIDL-Lite for tracks
+const sampleTracksDIDL = '''<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
+<item id="A:TRACKS/Song1" parentID="A:TRACKS" restricted="true">
+<dc:title>Yesterday</dc:title>
+<upnp:class>object.item.audioItem.musicTrack</upnp:class>
+<upnp:albumArtURI>/getaa?s=1&amp;u=x-file-cifs</upnp:albumArtURI>
+<res protocolInfo="http-get:*:audio/mpeg:*">x-file-cifs://server/music/yesterday.mp3</res>
+</item>
+</DIDL-Lite>''';
+
+/// Sample DIDL-Lite for albums
+const sampleAlbumsDIDL = '''<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
+<container id="A:ALBUM/Abbey%20Road" parentID="A:ALBUM" restricted="true">
+<dc:title>Abbey Road</dc:title>
+<upnp:class>object.container.album.musicAlbum</upnp:class>
+<upnp:albumArtURI>/getaa?s=1&amp;u=x-file-cifs</upnp:albumArtURI>
+</container>
+</DIDL-Lite>''';
+
+/// Empty DIDL-Lite - needs proper format
+const emptyDIDL = '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/"></DIDL-Lite>';
 
 void main() {
+  // Initialize DIDL classes
+  setUpAll(() {
+    initializeDidlClasses();
+  });
   group('MusicLibrary', () {
     // Use unique IP to avoid singleton conflicts
     final device = SoCo('192.168.210.100');
@@ -417,6 +506,364 @@ void main() {
         DidlPlaylistContainer.itemClass,
         equals('object.container.playlistContainer'),
       );
+    });
+  });
+
+  group('MusicLibrary with HTTP mocking', () {
+    late SoCo device;
+    late MusicLibrary library;
+    late List<http.Request> capturedRequests;
+
+    setUp(() {
+      device = SoCo('192.168.211.100');
+      library = MusicLibrary(device);
+      capturedRequests = [];
+    });
+
+    MockClient createMockClient(String response, {int statusCode = 200}) {
+      return MockClient((request) async {
+        capturedRequests.add(request);
+        return http.Response(response, statusCode);
+      });
+    }
+
+    test('getMusicLibraryInformation throws on unknown search type', () async {
+      expect(
+        () => library.getMusicLibraryInformation('invalid_type'),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('getMusicLibraryInformation returns empty result on 701 error', () async {
+      final mockClient = createMockClient(
+        errorResponse(701, 'No such object'),
+        statusCode: 500,
+      );
+      device.httpClient = mockClient;
+
+      final result = await library.getArtists();
+
+      expect(result.items, isEmpty);
+      expect(result.numberReturned, equals(0));
+      expect(result.totalMatches, equals(0));
+    });
+
+    test('getMusicLibraryInformation rethrows non-701 errors', () async {
+      final mockClient = createMockClient(
+        errorResponse(402, 'Invalid Args'),
+        statusCode: 500,
+      );
+      device.httpClient = mockClient;
+
+      expect(
+        () => library.getArtists(),
+        throwsA(isA<SoCoUPnPException>()),
+      );
+    });
+
+    test('browse returns empty result on 701 error', () async {
+      final mockClient = createMockClient(
+        errorResponse(701, 'No such object'),
+        statusCode: 500,
+      );
+      device.httpClient = mockClient;
+
+      final result = await library.browse();
+
+      expect(result.items, isEmpty);
+      expect(result.searchType, equals('browse'));
+    });
+
+    test('browseByIdstring throws on unknown search type', () async {
+      expect(
+        () => library.browseByIdstring('unknown', 'test'),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('getMusicLibraryInformation returns correct metadata', () async {
+      // Note: fromDidlString currently returns maps instead of DidlObjects
+      // This test verifies the metadata is parsed correctly
+      final mockClient = createMockClient(
+        browseResponse(
+          result: emptyDIDL,
+          numberReturned: 0,
+          totalMatches: 5,
+          updateId: 1234,
+        ),
+      );
+      device.httpClient = mockClient;
+
+      final result = await library.getArtists();
+
+      expect(result.numberReturned, equals(0));
+      expect(result.totalMatches, equals(5));
+      expect(result.updateId, equals(1234));
+      expect(result.searchType, equals('artists'));
+    });
+
+    // Note: fullAlbumArtUri test requires DidlObject types from fromDidlString,
+    // but currently it returns Map<String, Object>. The _updateAlbumArtToFullUri
+    // line (456) would require library changes to test properly.
+
+    test('getMusicLibraryInformation with subcategories builds correct search', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        // Extract ObjectID from SOAP body
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.getArtists(subcategories: ['The Beatles', 'Abbey Road']);
+
+      expect(capturedSearch, equals('A:ARTIST/The%20Beatles/Abbey%20Road'));
+    });
+
+    test('getMusicLibraryInformation with searchTerm builds correct search', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.getArtists(searchTerm: 'Beatles');
+
+      expect(capturedSearch, equals('A:ARTIST:Beatles'));
+    });
+
+    test('getMusicLibraryInformation with share searchType handles searchTerm differently', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.getMusicLibraryInformation('share', searchTerm: '//server/music');
+
+      // Share type doesn't add colon and uses Uri.encodeComponent
+      expect(capturedSearch, contains('S:'));
+    });
+
+    test('getMusicLibraryInformation ignores subcategories for share type', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.getMusicLibraryInformation('share', subcategories: ['ignored']);
+
+      // Share type should not include subcategories
+      expect(capturedSearch, equals('S:'));
+    });
+
+    test('getMusicLibraryInformation sends correct start and maxItems', () async {
+      int? capturedStart;
+      int? capturedMax;
+      final mockClient = MockClient((request) async {
+        capturedRequests.add(request);
+        final startMatch = RegExp(r'<StartingIndex>(\d+)</StartingIndex>').firstMatch(request.body);
+        final maxMatch = RegExp(r'<RequestedCount>(\d+)</RequestedCount>').firstMatch(request.body);
+        if (startMatch != null) capturedStart = int.parse(startMatch.group(1)!);
+        if (maxMatch != null) capturedMax = int.parse(maxMatch.group(1)!);
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.getArtists(start: 50, maxItems: 25);
+
+      expect(capturedStart, equals(50));
+      expect(capturedMax, equals(25));
+    });
+
+    test('browse with subcategories and searchTerm', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      // Create a DidlObject to browse from
+      final item = DidlMusicArtist(
+        title: 'Artist',
+        parentId: 'A:',
+        itemId: 'A:ARTIST/TestArtist',
+      );
+
+      await library.browse(
+        mlItem: item,
+        subcategories: ['Album1'],
+        searchTerm: 'Track',
+      );
+
+      expect(capturedSearch, equals('A:ARTIST/TestArtist/Album1:Track'));
+    });
+
+    test('browse with null mlItem starts at root', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.browse();
+
+      expect(capturedSearch, equals('A:'));
+    });
+
+    test('browseByIdstring with idstring that already has prefix', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.browseByIdstring('artists', 'A:ARTIST/Beatles');
+
+      // Should not double-add the prefix
+      expect(capturedSearch, equals('A:ARTIST/Beatles'));
+    });
+
+    test('browseByIdstring for playlists uses full path', () async {
+      String? capturedSearch;
+      final mockClient = MockClient((request) async {
+        final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+        if (match != null) {
+          capturedSearch = match.group(1);
+        }
+        return http.Response(
+          browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+          200,
+        );
+      });
+      device.httpClient = mockClient;
+
+      await library.browseByIdstring('playlists', '//server/share/playlist.m3u');
+
+      // Playlists use the full path without adding prefix
+      expect(capturedSearch, equals('//server/share/playlist.m3u'));
+    });
+
+    test('convenience methods use correct search types', () async {
+      final methods = <String, Future<SearchResult> Function()>{
+        'artists': () => library.getArtists(),
+        'album_artists': () => library.getAlbumArtists(),
+        'albums': () => library.getAlbums(),
+        'genres': () => library.getGenres(),
+        'composers': () => library.getComposers(),
+        'tracks': () => library.getTracks(),
+        'playlists': () => library.getPlaylists(),
+        'sonos_favorites': () => library.getSonosFavorites(),
+        'radio_stations': () => library.getFavoriteRadioStations(),
+        'radio_shows': () => library.getFavoriteRadioShows(),
+      };
+
+      for (final entry in methods.entries) {
+        String? capturedSearch;
+        final mockClient = MockClient((request) async {
+          final match = RegExp(r'<ObjectID>([^<]+)</ObjectID>').firstMatch(request.body);
+          if (match != null) {
+            capturedSearch = match.group(1);
+          }
+          return http.Response(
+            browseResponse(result: emptyDIDL, numberReturned: 0, totalMatches: 0),
+            200,
+          );
+        });
+        device.httpClient = mockClient;
+
+        await entry.value();
+
+        final expectedPrefix = MusicLibrary.searchTranslation[entry.key];
+        expect(
+          capturedSearch,
+          equals(expectedPrefix),
+          reason: 'Method for ${entry.key} should use prefix $expectedPrefix',
+        );
+      }
+    });
+  });
+
+  group('Album art URI helpers', () {
+    late SoCo device;
+    late MusicLibrary musicLibrary;
+
+    setUp(() {
+      device = SoCo('192.168.99.1');
+      musicLibrary = MusicLibrary(device);
+    });
+
+    test('buildAlbumArtFullUri returns absolute URI for relative path', () {
+      final result = musicLibrary.buildAlbumArtFullUri('/getaa?s=1&u=test');
+      expect(result, equals('http://192.168.99.1:1400/getaa?s=1&u=test'));
+    });
+
+    test('buildAlbumArtFullUri returns unchanged for http URI', () {
+      final uri = 'http://example.com/image.jpg';
+      final result = musicLibrary.buildAlbumArtFullUri(uri);
+      expect(result, equals(uri));
+    });
+
+    test('buildAlbumArtFullUri returns unchanged for https URI', () {
+      final uri = 'https://example.com/image.jpg';
+      final result = musicLibrary.buildAlbumArtFullUri(uri);
+      expect(result, equals(uri));
     });
   });
 }

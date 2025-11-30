@@ -5,49 +5,77 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.0] - 2025-11-30
+
+### Initial Release
+
+First public release of the SoCo Dart port. This is a complete port of the Python
+[SoCo library](https://github.com/SoCo/SoCo), providing programmatic control of
+Sonos speakers from Dart applications.
 
 ### Added
-- Initial Dart port of Python SoCo library
-- Core SoCo class with 120+ methods for speaker control
-- Device discovery via SSDP multicast and network scanning
-- Playback control (play, pause, stop, next, previous, seek)
-- Volume and audio controls (volume, mute, bass, treble, loudness)
-- Queue management (get, add, remove, clear, reorder)
-- Group/zone management (join, unjoin, party mode)
-- Music library browsing and searching
-- Alarm management with full CRUD operations
-- State snapshot and restore functionality
-- UPnP event subscriptions with Dart Streams
-- Advanced speaker settings (night mode, dialog mode, surround, subwoofer, etc.)
-- Sleep timer and battery info support
-- DIDL-Lite metadata structures
-- 72 unit tests covering core functionality
-- 3 working examples with documentation
-- Comprehensive README and project documentation
 
-## [0.1.0-dev] - 2025-11-10
+#### Core Features
+- **SoCo class** with 120+ methods for comprehensive speaker control
+- **Device discovery** via SSDP multicast and network scanning
+- **Playback control**: play, pause, stop, next, previous, seek, play from queue
+- **Volume & audio**: volume, mute, bass, treble, loudness, balance
+- **Queue management**: get, add, remove, clear, reorder queue items
+- **Group management**: join, unjoin, party mode, zone groups
+- **Music library**: browse and search local music library
+- **Alarms**: full CRUD operations for Sonos alarms
+- **Snapshot/restore**: save and restore speaker state
+- **Events**: UPnP subscriptions with Dart Streams
+- **Sleep timer** and **battery info** support
 
-### Initial Development Release
+#### Advanced Features
+- **Home theater**: night mode, dialog mode, audio delay
+- **Surround speakers**: enable/disable, volume control
+- **Subwoofer**: enable/disable, gain, crossover settings
+- **Stereo pairs**: create and separate stereo pairs
+- **Trueplay** and **fixed volume** support
+- **Line-in** and **TV input** switching
 
-First development release of the SoCo Dart port. Core functionality is complete
-and working, but not yet ready for production use.
+#### Music Services
+- Music service accounts management
+- Token store for service authentication
+- Service-specific data structures
+- Music service browsing and playback
 
-**What's Working:**
-- All core Sonos control features
-- Device discovery, playback, volume, queue, groups
-- Alarms, snapshots, events, advanced settings
+#### Plugins
+- Plugin system base infrastructure
+- **ShareLink plugin**: Share music links across services
+- **Plex plugin**: Plex media server integration
+- Example plugin template
 
-**What's Pending:**
-- Music service integrations
-- Plugin system
-- Full test coverage
-- Publication to pub.dev
+#### Data Structures
+- DIDL-Lite metadata classes (tracks, albums, artists, playlists)
+- Search results with pagination
+- Zone group and zone member structures
+- Alarm and snapshot data models
 
-**Project Statistics:**
-- 21 source modules (~9,700 lines)
-- 72 passing unit tests
-- Zero analyzer warnings
+### Project Statistics
+- **18 core modules** fully ported
+- **5 music service modules**
+- **4 plugin modules**
+- **21 test modules** with 567+ unit tests
+- **80% code coverage** (1843/2304 lines)
+- **7 comprehensive examples**
+- **Zero analyzer warnings**
 
-[Unreleased]: https://github.com/shorn/soco-dart/compare/v0.1.0-dev...HEAD
-[0.1.0-dev]: https://github.com/shorn/soco-dart/releases/tag/v0.1.0-dev
+### Differences from Python SoCo
+- All I/O operations are async (`Future`-based)
+- Events use Dart `Stream`s instead of callbacks
+- Full null-safety support
+- Dart naming conventions (camelCase)
+- Immutable data structures where appropriate
+
+## [Unreleased]
+
+### Planned
+- Additional music service integrations
+- Performance optimizations
+- More comprehensive documentation
+
+[0.1.0]: https://github.com/shorn/soco-dart/releases/tag/v0.1.0
+[Unreleased]: https://github.com/shorn/soco-dart/compare/v0.1.0...HEAD

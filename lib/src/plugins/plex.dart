@@ -202,13 +202,16 @@ class PlexPlugin extends SoCoPlugin {
     final enqueuedUri =
         'x-rincon-cpcontainer:${itemDidl.itemId}?sid=$svcId&flags=8300&sn=9';
 
-    final response = await soco.avTransport.addUriToQueue([
-      MapEntry('InstanceID', 0),
-      MapEntry('EnqueuedURI', enqueuedUri),
-      MapEntry('EnqueuedURIMetaData', metadata),
-      MapEntry('DesiredFirstTrackNumberEnqueued', position),
-      MapEntry('EnqueueAsNext', asNext ? 1 : 0),
-    ]);
+    final response = await soco.avTransport.sendCommand(
+      'AddURIToQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EnqueuedURI', enqueuedUri),
+        MapEntry('EnqueuedURIMetaData', metadata),
+        MapEntry('DesiredFirstTrackNumberEnqueued', position),
+        MapEntry('EnqueueAsNext', asNext ? 1 : 0),
+      ],
+    );
 
     final qnumber = response['FirstTrackNumberEnqueued'] as String;
     return int.parse(qnumber);

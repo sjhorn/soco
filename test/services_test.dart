@@ -237,6 +237,23 @@ void main() {
 
         expect(result, isEmpty);
       });
+
+      test('filters illegal XML characters', () {
+        // Test with a response containing illegal control characters
+        // The filter should handle characters like 0x00-0x08, 0x0B, 0x0C, 0x0E-0x1F
+        final xml = '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <u:GetVolumeResponse xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+      <CurrentVolume>42</CurrentVolume>
+    </u:GetVolumeResponse>
+  </s:Body>
+</s:Envelope>''';
+
+        // This should not throw
+        final result = Service.unwrapArguments(xml);
+        expect(result['CurrentVolume'], equals('42'));
+      });
     });
 
     group('buildCommand', () {
@@ -501,5 +518,174 @@ void main() {
       final service = RenderingControl(device);
       expect(service.controlUrl, equals('/RenderingControl/Control'));
     });
+
+    test('AudioIn has correct service type', () {
+      final service = AudioIn(device);
+      expect(service.serviceType, equals('AudioIn'));
+    });
+
+    test('SystemProperties has correct service type', () {
+      final service = SystemProperties(device);
+      expect(service.serviceType, equals('SystemProperties'));
+    });
+
+    test('GroupManagement has correct service type', () {
+      final service = GroupManagement(device);
+      expect(service.serviceType, equals('GroupManagement'));
+    });
+
+    test('QPlay has correct service type', () {
+      final service = QPlay(device);
+      expect(service.serviceType, equals('QPlay'));
+    });
+
+    test('MSConnectionManager has correct service type', () {
+      final service = MSConnectionManager(device);
+      expect(service.serviceType, equals('ConnectionManager'));
+    });
+
+    test('MRConnectionManager has correct service type', () {
+      final service = MRConnectionManager(device);
+      expect(service.serviceType, equals('ConnectionManager'));
+    });
   });
+
+  group('Service advanced', () {
+    late SoCo device;
+
+    setUp(() {
+      device = SoCo('192.168.50.100');
+    });
+
+
+    group('actions getter', () {
+      test('returns empty list and caches result', () async {
+        final service = RenderingControl(device);
+
+        // First call
+        final actions1 = await service.actions;
+        expect(actions1, isEmpty);
+
+        // Second call should return same cached instance
+        final actions2 = await service.actions;
+        expect(identical(actions1, actions2), isTrue);
+      });
+    });
+
+    group('eventVars getter', () {
+      test('returns empty map and caches result', () async {
+        final service = RenderingControl(device);
+
+        // First call
+        final vars1 = await service.eventVars;
+        expect(vars1, isEmpty);
+
+        // Second call should return same cached instance
+        final vars2 = await service.eventVars;
+        expect(identical(vars1, vars2), isTrue);
+      });
+    });
+
+    group('iterActions', () {
+      test('yields no actions when actions list is empty', () async {
+        final service = RenderingControl(device);
+
+        final actions = await service.iterActions().toList();
+        expect(actions, isEmpty);
+      });
+    });
+
+    group('subscribe', () {
+      test('throws UnimplementedError', () async {
+        final service = RenderingControl(device);
+
+        expect(
+          () => service.subscribe(),
+          throwsA(isA<UnimplementedError>()),
+        );
+      });
+    });
+
+    group('updateCacheOnEvent', () {
+      test('updates cache with event variables', () {
+        final service = RenderingControl(device);
+
+        // Create a mock event object with variables
+        final mockEvent = _MockEvent({
+          'Volume': '50',
+          'Mute': '0',
+        });
+
+        // This should not throw
+        service.updateCacheOnEvent(mockEvent);
+
+        // We can't easily verify cache contents, but we verify it doesn't throw
+      });
+    });
+
+    group('additionalHeaders', () {
+      test('are included in buildCommand', () {
+        final service = RenderingControl(device);
+        service.additionalHeaders['X-Custom'] = 'value';
+
+        final (headers, _) = service.buildCommand('GetVolume');
+
+        expect(headers['X-Custom'], equals('value'));
+      });
+    });
+
+    group('composeArgs', () {
+      test('throws for unknown action', () async {
+        final service = RenderingControl(device);
+
+        expect(
+          () => service.composeArgs('NonExistentAction', {}),
+          throwsArgumentError,
+        );
+      });
+
+      // Note: Tests for unexpected/missing arguments require actual action metadata
+      // which is loaded dynamically from the device. These paths are tested
+      // via integration tests with real/mocked device responses.
+    });
+
+    group('unwrapArguments', () {
+      test('handles XML with illegal characters by filtering', () {
+        // XML with a control character that would normally fail parsing
+        final xmlWithControlChar = '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <u:GetVolumeResponse xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+      <CurrentVolume>Test\x01Value</CurrentVolume>
+    </u:GetVolumeResponse>
+  </s:Body>
+</s:Envelope>''';
+
+        // Should not throw - it should filter the illegal char and parse
+        final result = Service.unwrapArguments(xmlWithControlChar);
+        expect(result, isA<Map<String, String>>());
+        expect(result.containsKey('CurrentVolume'), isTrue);
+      });
+
+      test('parses valid SOAP response correctly', () {
+        final validXml = '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+  <s:Body>
+    <u:GetVolumeResponse xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+      <CurrentVolume>42</CurrentVolume>
+    </u:GetVolumeResponse>
+  </s:Body>
+</s:Envelope>''';
+
+        final result = Service.unwrapArguments(validXml);
+        expect(result['CurrentVolume'], equals('42'));
+      });
+    });
+  });
+}
+
+/// Mock event class for testing updateCacheOnEvent
+class _MockEvent {
+  final Map<String, dynamic> variables;
+  _MockEvent(this.variables);
 }

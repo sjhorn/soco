@@ -145,4 +145,31 @@ void main() {
       cache.enabled = true;
     });
   });
+
+  group('NullCache', () {
+    test('put does nothing', () {
+      final cache = NullCache();
+      // Should not throw
+      cache.put('item', ['arg1'], {'key': 'value'});
+      expect(cache.get(['arg1'], {'key': 'value'}), isNull);
+    });
+
+    test('get always returns null', () {
+      final cache = NullCache();
+      expect(cache.get([], {}), isNull);
+      expect(cache.get(['arg'], {'k': 'v'}), isNull);
+    });
+
+    test('delete does nothing', () {
+      final cache = NullCache();
+      // Should not throw
+      cache.delete(['arg1'], {'key': 'value'});
+    });
+
+    test('clear does nothing', () {
+      final cache = NullCache();
+      // Should not throw
+      cache.clear();
+    });
+  });
 }

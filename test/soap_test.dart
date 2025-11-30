@@ -396,5 +396,27 @@ void main() {
       final result = await soap.call();
       expect(result, isNotNull);
     });
+
+    test('throws ClientException on non-SOAP error response', () async {
+      // Return 400 Bad Request with a non-SOAP body (not a fault envelope)
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          'Bad Request - not a SOAP response',
+          400,
+          reasonPhrase: 'Bad Request',
+        );
+      });
+
+      final soap = SoapMessage(
+        endpoint: 'http://192.168.1.100:1400/test',
+        method: 'TestMethod',
+        httpClient: mockClient,
+      );
+
+      expect(
+        () => soap.call(),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
   });
 }

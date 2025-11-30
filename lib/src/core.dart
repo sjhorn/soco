@@ -245,6 +245,28 @@ class SoCo {
   /// The speaker's IP address
   final String ipAddress;
 
+  /// Optional HTTP client for testing. If set, all services will use this client.
+  http.Client? _httpClient;
+
+  /// Set the HTTP client for all services (for testing).
+  set httpClient(http.Client? client) {
+    _httpClient = client;
+    // Propagate to all services
+    avTransport.httpClient = client;
+    contentDirectory.httpClient = client;
+    deviceProperties.httpClient = client;
+    renderingControl.httpClient = client;
+    groupRenderingControl.httpClient = client;
+    zoneGroupTopology.httpClient = client;
+    alarmClock.httpClient = client;
+    systemProperties.httpClient = client;
+    musicServices.httpClient = client;
+    audioIn.httpClient = client;
+  }
+
+  /// Get the HTTP client.
+  http.Client? get httpClient => _httpClient;
+
   /// Information about the current speaker
   Map<String, dynamic> speakerInfo = {};
 
@@ -348,6 +370,8 @@ class SoCo {
       return _uid!;
     }
     await zoneGroupState.poll(this);
+    // The uid is stored in speakerInfo by zoneGroupState.poll()
+    _uid = speakerInfo['_uid'] as String?;
     return _uid!;
   }
 

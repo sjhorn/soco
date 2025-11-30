@@ -1,0 +1,14 @@
+# Exclude coverage data from published package
+coverage/
+
+# Exclude development files
+TODO.md
+AGENTS.md
+CLAUDE.md
+
+# Exclude Python SoCo source directory (used for reference)
+SoCo/
+
+# Exclude git-related files
+.git/
+.gitignore

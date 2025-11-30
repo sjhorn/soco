@@ -280,13 +280,16 @@ class ShareLinkPlugin extends SoCoPlugin {
             .replaceAll('{sn}', service.serviceNumber().toString());
 
         try {
-          final response = await soco.avTransport.addUriToQueue([
-            MapEntry('InstanceID', 0),
-            MapEntry('EnqueuedURI', enqueueUri),
-            MapEntry('EnqueuedURIMetaData', metadata),
-            MapEntry('DesiredFirstTrackNumberEnqueued', position),
-            MapEntry('EnqueueAsNext', asNext ? 1 : 0),
-          ]);
+          final response = await soco.avTransport.sendCommand(
+            'AddURIToQueue',
+            args: [
+              MapEntry('InstanceID', 0),
+              MapEntry('EnqueuedURI', enqueueUri),
+              MapEntry('EnqueuedURIMetaData', metadata),
+              MapEntry('DesiredFirstTrackNumberEnqueued', position),
+              MapEntry('EnqueueAsNext', asNext ? 1 : 0),
+            ],
+          );
 
           final qnumber = response['FirstTrackNumberEnqueued'] as String;
           return int.parse(qnumber);

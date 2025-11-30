@@ -3,6 +3,7 @@ library;
 
 import 'package:test/test.dart';
 import 'package:soco/src/utils.dart';
+import 'package:xml/xml.dart';
 
 void main() {
   group('Utils', () {
@@ -146,6 +147,15 @@ void main() {
 
         // Should return original since it can't be parsed
         expect(result, equals(invalidXml));
+      });
+    });
+
+    group('showXml', () {
+      test('prints prettified XML to stdout', () {
+        final xmlDoc = XmlDocument.parse('<root><child>text</child></root>');
+        // This just exercises the function - it prints to stdout
+        // We can't easily capture the output but we can verify it doesn't throw
+        showXml(xmlDoc);
       });
     });
   });

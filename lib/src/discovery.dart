@@ -78,15 +78,14 @@ Future<Set<SoCo>?> discover({
   // Validate interface address if provided
   Set<String> addresses;
   if (interfaceAddr != null) {
-    try {
-      InternetAddress.tryParse(interfaceAddr);
-      addresses = {interfaceAddr};
-      _log.fine(
-        'Sending discovery packets on specified interface $interfaceAddr',
-      );
-    } catch (e) {
+    final parsed = InternetAddress.tryParse(interfaceAddr);
+    if (parsed == null) {
       throw ArgumentError('$interfaceAddr is not a valid IP address string');
     }
+    addresses = {interfaceAddr};
+    _log.fine(
+      'Sending discovery packets on specified interface $interfaceAddr',
+    );
   } else {
     // Use all qualified, discovered network interfaces
     addresses = await _findIpv4Addresses();
@@ -393,6 +392,12 @@ Future<Set<SoCo>?> scanNetwork({
   // Use concurrent futures to scan the list efficiently
   final sonosIpAddresses = <String>[];
   final stopScan = <bool>[false]; // Shared flag to stop scanning
+
+  // Handle empty IP set
+  if (ipSet.isEmpty) {
+    _log.fine('No IP addresses to scan');
+    return null;
+  }
 
   final actualMaxThreads = maxThreads < ipSet.length
       ? maxThreads

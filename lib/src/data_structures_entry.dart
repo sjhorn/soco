@@ -92,8 +92,11 @@ List<dynamic> fromDidlString(String string) {
     }
   }
 
+  final itemsStr = items.toString();
+  final itemsPreview = itemsStr.length > 20 ? '${itemsStr.substring(0, 20)} (CUT)' : itemsStr;
+  final stringPreview = string.length > 20 ? '${string.substring(0, 20)} (CUT)' : string;
   _log.fine(
-    'Created data structures: ${items.toString().substring(0, 20)} (CUT) from Didl string "${string.substring(0, 20)}" (CUT)',
+    'Created data structures: $itemsPreview from Didl string "$stringPreview"',
   );
 
   // Cache the result

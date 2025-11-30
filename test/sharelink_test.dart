@@ -1,5 +1,10 @@
 import 'package:test/test.dart';
+import 'package:http/testing.dart';
+import 'package:http/http.dart' as http;
+import 'package:soco/src/core.dart';
+import 'package:soco/src/exceptions.dart';
 import 'package:soco/src/plugins/sharelink.dart';
+import 'helpers/mock_http.dart';
 
 void main() {
   group('SpotifyShare', () {
@@ -304,6 +309,200 @@ void main() {
       expect(plugin.services[2], isA<TIDALShare>());
       expect(plugin.services[3], isA<DeezerShare>());
       expect(plugin.services[4], isA<AppleMusicShare>());
+    });
+  });
+
+  group('ShareLinkPlugin.addShareLinkToQueue', () {
+    late SoCo soco;
+    late ShareLinkPlugin plugin;
+    late MockClient mockClient;
+
+    setUp(() {
+      soco = SoCo('192.168.50.150');
+    });
+
+    tearDown(() {
+      mockClient.close();
+    });
+
+    test('adds Spotify track to queue successfully', () async {
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          expect(request.body, contains('EnqueuedURI'));
+          expect(request.body, contains('spotify%3atrack%3a6NmXV4o6bmp704aPGyTVVG'));
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>5</FirstTrackNumberEnqueued>
+              <NumTracksAdded>1</NumTracksAdded>
+              <NewQueueLength>10</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      final position = await plugin.addShareLinkToQueue(
+        'spotify:track:6NmXV4o6bmp704aPGyTVVG',
+      );
+      expect(position, equals(5));
+    });
+
+    test('adds Spotify album to queue with title', () async {
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          expect(request.body, contains('x-rincon-cpcontainer:1004206c'));
+          expect(request.body, contains('My Album Title'));
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>1</FirstTrackNumberEnqueued>
+              <NumTracksAdded>12</NumTracksAdded>
+              <NewQueueLength>12</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      final position = await plugin.addShareLinkToQueue(
+        'spotify:album:6wiUBliPe76YAVpNEdidpY',
+        dcTitle: 'My Album Title',
+      );
+      expect(position, equals(1));
+    });
+
+    test('adds TIDAL track to queue', () async {
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          expect(request.body, contains('track%2f157273956'));
+          expect(request.body, contains('SA_RINCON44551'));
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>3</FirstTrackNumberEnqueued>
+              <NumTracksAdded>1</NumTracksAdded>
+              <NewQueueLength>3</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      final position = await plugin.addShareLinkToQueue(
+        'https://tidal.com/browse/track/157273956',
+      );
+      expect(position, equals(3));
+    });
+
+    test('adds item at specific position', () async {
+      var receivedPosition = -1;
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          // Extract DesiredFirstTrackNumberEnqueued from request
+          final match = RegExp(r'<DesiredFirstTrackNumberEnqueued>(\d+)</DesiredFirstTrackNumberEnqueued>')
+              .firstMatch(request.body);
+          if (match != null) {
+            receivedPosition = int.parse(match.group(1)!);
+          }
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>7</FirstTrackNumberEnqueued>
+              <NumTracksAdded>1</NumTracksAdded>
+              <NewQueueLength>10</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      await plugin.addShareLinkToQueue(
+        'spotify:track:6NmXV4o6bmp704aPGyTVVG',
+        position: 7,
+      );
+      expect(receivedPosition, equals(7));
+    });
+
+    test('adds item with asNext=true', () async {
+      var receivedAsNext = '';
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          final match = RegExp(r'<EnqueueAsNext>(\d+)</EnqueueAsNext>')
+              .firstMatch(request.body);
+          if (match != null) {
+            receivedAsNext = match.group(1)!;
+          }
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>2</FirstTrackNumberEnqueued>
+              <NumTracksAdded>1</NumTracksAdded>
+              <NewQueueLength>5</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      await plugin.addShareLinkToQueue(
+        'spotify:track:6NmXV4o6bmp704aPGyTVVG',
+        asNext: true,
+      );
+      expect(receivedAsNext, equals('1'));
+    });
+
+    test('throws for unsupported URI', () async {
+      mockClient = MockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      expect(
+        () => plugin.addShareLinkToQueue('https://youtube.com/watch?v=123'),
+        throwsA(isA<SoCoException>().having(
+          (e) => e.message,
+          'message',
+          contains('Unsupported URI'),
+        )),
+      );
+    });
+
+    test('tries next service on failure', () async {
+      // The plugin should try SpotifyShare, then SpotifyUSShare
+      var callCount = 0;
+      mockClient = MockClient((request) async {
+        if (request.body.contains('AddURIToQueue')) {
+          callCount++;
+          if (callCount == 1) {
+            // First call (SpotifyShare) fails
+            return http.Response(soapFault(faultcode: 's:Client', faultstring: 'UPnPError', errorCode: '714'), 500);
+          }
+          // Second call (SpotifyUSShare) succeeds
+          return http.Response(soapEnvelope('''
+            <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+              <FirstTrackNumberEnqueued>1</FirstTrackNumberEnqueued>
+              <NumTracksAdded>1</NumTracksAdded>
+              <NewQueueLength>1</NewQueueLength>
+            </u:AddURIToQueueResponse>
+          '''), 200);
+        }
+        return http.Response('Not Found', 404);
+      });
+      soco.httpClient = mockClient;
+      plugin = ShareLinkPlugin(soco);
+
+      final position = await plugin.addShareLinkToQueue(
+        'spotify:track:6NmXV4o6bmp704aPGyTVVG',
+      );
+      expect(position, equals(1));
+      expect(callCount, equals(2));
     });
   });
 }

@@ -4,6 +4,7 @@
 /// modifying, and removing Sonos alarms.
 library;
 
+import 'package:meta/meta.dart';
 import 'package:xml/xml.dart';
 
 import 'core.dart';
@@ -84,10 +85,21 @@ class Alarms extends Iterable<Alarm> {
   final Map<String, Alarm> alarms = {};
 
   /// Last zone used for updates
-  SoCo? _lastZoneUsed;
+  @visibleForTesting
+  SoCo? lastZoneUsed;
 
   /// Last alarm list version seen
   String? _lastAlarmListVersion;
+
+  /// Reset state for testing
+  @visibleForTesting
+  void resetForTesting() {
+    alarms.clear();
+    lastZoneUsed = null;
+    _lastAlarmListVersion = null;
+    lastUid = null;
+    lastId = 0;
+  }
 
   /// Last UID seen
   String? lastUid;
@@ -135,13 +147,13 @@ class Alarms extends Iterable<Alarm> {
   ///   [SoCoException]: If the 'CurrentAlarmListVersion' value is unexpected.
   ///     May occur if the provided zone is from a different household.
   Future<void> update([SoCo? zone]) async {
-    zone ??= _lastZoneUsed ?? await anySoco();
+    zone ??= lastZoneUsed ?? await anySoco();
 
     if (zone == null) {
       throw SoCoException('No Sonos devices found on network');
     }
 
-    _lastZoneUsed = zone;
+    lastZoneUsed = zone;
 
     final response = await zone.alarmClock.sendCommand('ListAlarms');
     final currentAlarmListVersion = response['CurrentAlarmListVersion'];
@@ -492,6 +504,10 @@ class Alarm {
 
   /// The ID of the alarm, or null if not saved
   String? get alarmId => _alarmId;
+
+  /// Set alarm ID for testing purposes
+  @visibleForTesting
+  set alarmIdForTesting(String? id) => _alarmId = id;
 
   /// Save the alarm to the Sonos system.
   ///
