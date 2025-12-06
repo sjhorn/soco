@@ -21,48 +21,59 @@ void main() {
       config.cacheEnabled = true;
     });
 
-    test('put and get items with keyword arguments', () async {
-      final cache = Cache.create();
-      cache.put(
-        'item',
-        ['some'],
-        {'kw': 'args'},
-        timeout: const Duration(seconds: 3),
-      );
+    test(
+      'put and get items with keyword arguments',
+      () async {
+        final cache = Cache.create();
+        cache.put(
+          'item',
+          ['some'],
+          {'kw': 'args'},
+          timeout: const Duration(seconds: 3),
+        );
 
-      // Different args should not match
-      expect(
-        cache.get(['some'], {'otherargs': 'value'}),
-        isNot(equals('item')),
-      );
+        // Different args should not match
+        expect(
+          cache.get(['some'], {'otherargs': 'value'}),
+          isNot(equals('item')),
+        );
 
-      // Same args should match
-      expect(cache.get(['some'], {'kw': 'args'}), equals('item'));
+        // Same args should match
+        expect(cache.get(['some'], {'kw': 'args'}), equals('item'));
 
-      // Wait 2 seconds, should still be there
-      await Future.delayed(const Duration(seconds: 2));
-      expect(cache.get(['some'], {'kw': 'args'}), equals('item'));
+        // Wait 2 seconds, should still be there
+        await Future.delayed(const Duration(seconds: 2));
+        expect(cache.get(['some'], {'kw': 'args'}), equals('item'));
 
-      // Wait another 2 seconds (total 4s), should be expired (timeout was 3s)
-      await Future.delayed(const Duration(seconds: 2));
-      expect(cache.get(['some'], {'kw': 'args'}), isNot(equals('item')));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        // Wait another 2 seconds (total 4s), should be expired (timeout was 3s)
+        await Future.delayed(const Duration(seconds: 2));
+        expect(cache.get(['some'], {'kw': 'args'}), isNot(equals('item')));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('put and get items with positional and keyword arguments', () {
-      final cache = Cache.create();
-      cache.put(
-        'item',
-        ['some', 'args'],
-        {'and_a': 'keyword'},
-        timeout: const Duration(seconds: 3),
-      );
+    test(
+      'put and get items with positional and keyword arguments',
+      () {
+        final cache = Cache.create();
+        cache.put(
+          'item',
+          ['some', 'args'],
+          {'and_a': 'keyword'},
+          timeout: const Duration(seconds: 3),
+        );
 
-      expect(cache.get(['some', 'args'], {'and_a': 'keyword'}), equals('item'));
-      expect(
-        cache.get(['some', 'otherargs'], {'and_a': 'keyword'}),
-        isNot(equals('item')),
-      );
-    }, timeout: Timeout(Duration(seconds: 5)));
+        expect(
+          cache.get(['some', 'args'], {'and_a': 'keyword'}),
+          equals('item'),
+        );
+        expect(
+          cache.get(['some', 'otherargs'], {'and_a': 'keyword'}),
+          isNot(equals('item')),
+        );
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('delete removes items from cache', () {
       final cache = Cache.create();

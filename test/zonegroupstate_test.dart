@@ -51,8 +51,10 @@ void main() {
     });
 
     group('processPayload', () {
-      test('increments totalRequests on each call', () async {
-        final xml = '''
+      test(
+        'increments totalRequests on each call',
+        () async {
+          final xml = '''
           <ZoneGroupState>
             <ZoneGroups>
               <ZoneGroup Coordinator="RINCON_001" ID="group1">
@@ -64,19 +66,23 @@ void main() {
           </ZoneGroupState>
         ''';
 
-        expect(zgs.totalRequests, equals(0));
+          expect(zgs.totalRequests, equals(0));
 
-        await zgs.processPayload(
-          payload: xml,
-          source: 'test',
-          sourceIp: '192.168.1.100',
-        );
+          await zgs.processPayload(
+            payload: xml,
+            source: 'test',
+            sourceIp: '192.168.1.100',
+          );
 
-        expect(zgs.totalRequests, equals(1));
-      }, timeout: Timeout(Duration(seconds: 10)));
+          expect(zgs.totalRequests, equals(1));
+        },
+        timeout: Timeout(Duration(seconds: 10)),
+      );
 
-      test('increments processedCount for new payloads', () async {
-        final xml = '''
+      test(
+        'increments processedCount for new payloads',
+        () async {
+          final xml = '''
           <ZoneGroupState>
             <ZoneGroups>
               <ZoneGroup Coordinator="RINCON_002" ID="group2">
@@ -88,16 +94,18 @@ void main() {
           </ZoneGroupState>
         ''';
 
-        expect(zgs.processedCount, equals(0));
+          expect(zgs.processedCount, equals(0));
 
-        await zgs.processPayload(
-          payload: xml,
-          source: 'test',
-          sourceIp: '192.168.1.101',
-        );
+          await zgs.processPayload(
+            payload: xml,
+            source: 'test',
+            sourceIp: '192.168.1.101',
+          );
 
-        expect(zgs.processedCount, equals(1));
-      }, timeout: Timeout(Duration(seconds: 10)));
+          expect(zgs.processedCount, equals(1));
+        },
+        timeout: Timeout(Duration(seconds: 10)),
+      );
 
       test('skips duplicate payloads', () async {
         final xml = '''
@@ -213,8 +221,10 @@ void main() {
         expect(group.members.length, equals(2));
       });
 
-      test('excludes invisible zones from visibleZones', () async {
-        final xml = '''
+      test(
+        'excludes invisible zones from visibleZones',
+        () async {
+          final xml = '''
           <ZoneGroupState>
             <ZoneGroups>
               <ZoneGroup Coordinator="RINCON_009" ID="group8">
@@ -230,15 +240,17 @@ void main() {
           </ZoneGroupState>
         ''';
 
-        await zgs.processPayload(
-          payload: xml,
-          source: 'test',
-          sourceIp: '192.168.1.108',
-        );
+          await zgs.processPayload(
+            payload: xml,
+            source: 'test',
+            sourceIp: '192.168.1.108',
+          );
 
-        expect(zgs.allZones.length, equals(2));
-        expect(zgs.visibleZones.length, equals(1));
-      }, timeout: Timeout(Duration(seconds: 10)));
+          expect(zgs.allZones.length, equals(2));
+          expect(zgs.visibleZones.length, equals(1));
+        },
+        timeout: Timeout(Duration(seconds: 10)),
+      );
 
       test('identifies coordinator', () async {
         final xml = '''
@@ -312,9 +324,11 @@ void main() {
         expect(satellite2.speakerInfo['_isSatellite'], isTrue);
       }, timeout: Timeout(Duration(seconds: 10)));
 
-      test('handles legacy format without ZoneGroups wrapper', () async {
-        // Pre-10.1 firmware format
-        final xml = '''
+      test(
+        'handles legacy format without ZoneGroups wrapper',
+        () async {
+          // Pre-10.1 firmware format
+          final xml = '''
           <ZoneGroupState>
             <ZoneGroup Coordinator="RINCON_016" ID="group11">
               <ZoneGroupMember UUID="RINCON_016"
@@ -324,18 +338,22 @@ void main() {
           </ZoneGroupState>
         ''';
 
-        await zgs.processPayload(
-          payload: xml,
-          source: 'test',
-          sourceIp: '192.168.1.115',
-        );
+          await zgs.processPayload(
+            payload: xml,
+            source: 'test',
+            sourceIp: '192.168.1.115',
+          );
 
-        expect(zgs.groups.length, equals(1));
-        expect(zgs.allZones.length, equals(1));
-      }, timeout: Timeout(Duration(seconds: 10)));
+          expect(zgs.groups.length, equals(1));
+          expect(zgs.allZones.length, equals(1));
+        },
+        timeout: Timeout(Duration(seconds: 10)),
+      );
 
-      test('extracts zone name from attribute', () async {
-        final xml = '''
+      test(
+        'extracts zone name from attribute',
+        () async {
+          final xml = '''
           <ZoneGroupState>
             <ZoneGroups>
               <ZoneGroup Coordinator="RINCON_017" ID="group12">
@@ -347,15 +365,20 @@ void main() {
           </ZoneGroupState>
         ''';
 
-        await zgs.processPayload(
-          payload: xml,
-          source: 'test',
-          sourceIp: '192.168.1.116',
-        );
+          await zgs.processPayload(
+            payload: xml,
+            source: 'test',
+            sourceIp: '192.168.1.116',
+          );
 
-        final zone = SoCo('192.168.1.116');
-        expect(zone.speakerInfo['_playerName'], equals('My Custom Zone Name'));
-      }, timeout: Timeout(Duration(seconds: 10)));
+          final zone = SoCo('192.168.1.116');
+          expect(
+            zone.speakerInfo['_playerName'],
+            equals('My Custom Zone Name'),
+          );
+        },
+        timeout: Timeout(Duration(seconds: 10)),
+      );
 
       test('extracts UUID from attribute', () async {
         final xml = '''
@@ -460,33 +483,37 @@ void main() {
 </s:Envelope>''';
       }
 
-      test('poll rethrows NotSupportedException when zgtEventFallback is disabled', () async {
-        // Save original config value
-        final originalFallback = config.zgtEventFallback;
-        
-        try {
-          // Disable event fallback
-          config.zgtEventFallback = false;
-          
-          final testZone = SoCo('192.168.99.100');
-          final zgs = ZoneGroupState();
-          
-          // Mock HTTP client to return UPnP error (simulating large system failure)
-          final mockClient = MockClient((request) async {
-            return http.Response(errorResponse(501, 'Action Failed'), 500);
-          });
-          testZone.httpClient = mockClient;
-          
-          // The poll should throw NotSupportedException when fallback is disabled
-          await expectLater(
-            zgs.poll(testZone),
-            throwsA(isA<NotSupportedException>()),
-          );
-        } finally {
-          // Restore original config value
-          config.zgtEventFallback = originalFallback;
-        }
-      }, timeout: Timeout(Duration(seconds: 5)));
+      test(
+        'poll rethrows NotSupportedException when zgtEventFallback is disabled',
+        () async {
+          // Save original config value
+          final originalFallback = config.zgtEventFallback;
+
+          try {
+            // Disable event fallback
+            config.zgtEventFallback = false;
+
+            final testZone = SoCo('192.168.99.100');
+            final zgs = ZoneGroupState();
+
+            // Mock HTTP client to return UPnP error (simulating large system failure)
+            final mockClient = MockClient((request) async {
+              return http.Response(errorResponse(501, 'Action Failed'), 500);
+            });
+            testZone.httpClient = mockClient;
+
+            // The poll should throw NotSupportedException when fallback is disabled
+            await expectLater(
+              zgs.poll(testZone),
+              throwsA(isA<NotSupportedException>()),
+            );
+          } finally {
+            // Restore original config value
+            config.zgtEventFallback = originalFallback;
+          }
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
   }, timeout: Timeout(Duration(seconds: 10)));
 }

@@ -37,10 +37,7 @@ void main() {
     });
 
     test('forms correct name for vendor extensions', () {
-      expect(
-        formName('object.item.audioItem.podcast'),
-        equals('DidlPodcast'),
-      );
+      expect(formName('object.item.audioItem.podcast'), equals('DidlPodcast'));
       expect(
         formName('object.container.album.photoAlbum'),
         equals('DidlPhotoAlbum'),
@@ -92,52 +89,45 @@ void main() {
     });
 
     test('returns DidlObject for unknown classes', () {
-      expect(
-        didlClassToSoCoClass('object.unknown.class'),
-        equals(DidlObject),
-      );
+      expect(didlClassToSoCoClass('object.unknown.class'), equals(DidlObject));
     });
 
     test('creates factory for unknown classes', () {
       // Clear any existing factories for this test
       final unknownClass = 'object.container.customExtension';
-      
+
       // First call should return base class and create factory
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlContainer));
-      
+
       // Factory should be available
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       // Factory should create instance with correct itemClass override
-      final instance = factory!(
-        title: 'Test',
-        parentId: '0',
-        itemId: '1',
-      );
-      
+      final instance = factory!(title: 'Test', parentId: '0', itemId: '1');
+
       expect(instance, isA<DidlContainer>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
 
     test('creates factory for nested unknown classes', () {
       final unknownClass = 'object.container.album.customAlbum';
-      
+
       // Should find base class DidlAlbum
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlAlbum));
-      
+
       // Factory should create instance with correct override
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       final instance = factory!(
         title: 'Custom Album',
         parentId: '0',
         itemId: '1',
       );
-      
+
       expect(instance, isA<DidlAlbum>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
@@ -145,19 +135,19 @@ void main() {
     test('creates factory for unknown audio book extension', () {
       // Test dynamic factory for DidlAudioBook base
       final unknownClass = 'object.item.audioItem.audioBook.customExtension';
-      
+
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlAudioBook));
-      
+
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       final instance = factory!(
         title: 'Custom Audio Book',
         parentId: '0',
         itemId: '1',
       );
-      
+
       expect(instance, isA<DidlAudioBook>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
@@ -165,19 +155,19 @@ void main() {
     test('creates factory for unknown audio line-in extension', () {
       // Test dynamic factory for DidlAudioLineIn base
       final unknownClass = 'object.item.audioItem.linein.customExtension';
-      
+
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlAudioLineIn));
-      
+
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       final instance = factory!(
         title: 'Custom Line In',
         parentId: '0',
         itemId: '1',
       );
-      
+
       expect(instance, isA<DidlAudioLineIn>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
@@ -185,19 +175,19 @@ void main() {
     test('creates factory for unknown item extension', () {
       // Test dynamic factory for DidlItem base
       final unknownClass = 'object.item.customExtension';
-      
+
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlItem));
-      
+
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       final instance = factory!(
         title: 'Custom Item',
         parentId: '0',
         itemId: '1',
       );
-      
+
       expect(instance, isA<DidlItem>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
@@ -205,19 +195,19 @@ void main() {
     test('creates factory for unknown audio item extension', () {
       // Test dynamic factory for DidlAudioItem base (fallback case)
       final unknownClass = 'object.item.audioItem.customExtension';
-      
+
       final baseClass = didlClassToSoCoClass(unknownClass);
       expect(baseClass, equals(DidlAudioItem));
-      
+
       final factory = getDidlClassFactory(unknownClass);
       expect(factory, isNotNull);
-      
+
       final instance = factory!(
         title: 'Custom Audio Item',
         parentId: '0',
         itemId: '1',
       );
-      
+
       expect(instance, isA<DidlAudioItem>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
@@ -310,7 +300,10 @@ void main() {
 
       final resource = DidlResource.fromElement(element);
 
-      expect(resource.protocolInfo, equals('sonos.com-spotify:*:audio/x-spotify.*'));
+      expect(
+        resource.protocolInfo,
+        equals('sonos.com-spotify:*:audio/x-spotify.*'),
+      );
     });
 
     test('converts to XML element', () {
@@ -324,7 +317,10 @@ void main() {
       final element = resource.toElement();
 
       expect(element.name.local, equals('res'));
-      expect(element.getAttribute('protocolInfo'), equals('http-get:*:audio/mpeg:*'));
+      expect(
+        element.getAttribute('protocolInfo'),
+        equals('http-get:*:audio/mpeg:*'),
+      );
       expect(element.getAttribute('duration'), equals('0:03:45'));
       expect(element.getAttribute('size'), equals('1024000'));
       expect(element.innerText, equals('http://example.com/music.mp3'));
@@ -408,11 +404,7 @@ void main() {
     });
 
     test('supports metadata access via operator[]', () {
-      final obj = DidlObject(
-        title: 'Test',
-        parentId: '0',
-        itemId: '1',
-      );
+      final obj = DidlObject(title: 'Test', parentId: '0', itemId: '1');
 
       obj['album'] = 'Test Album';
       obj['artist'] = 'Test Artist';
@@ -480,15 +472,24 @@ void main() {
     });
 
     test('DidlMusicTrack has correct itemClass', () {
-      expect(DidlMusicTrack.itemClass, equals('object.item.audioItem.musicTrack'));
+      expect(
+        DidlMusicTrack.itemClass,
+        equals('object.item.audioItem.musicTrack'),
+      );
     });
 
     test('DidlAudioBook has correct itemClass', () {
-      expect(DidlAudioBook.itemClass, equals('object.item.audioItem.audioBook'));
+      expect(
+        DidlAudioBook.itemClass,
+        equals('object.item.audioItem.audioBook'),
+      );
     });
 
     test('DidlAudioBroadcast has correct itemClass', () {
-      expect(DidlAudioBroadcast.itemClass, equals('object.item.audioItem.audioBroadcast'));
+      expect(
+        DidlAudioBroadcast.itemClass,
+        equals('object.item.audioItem.audioBroadcast'),
+      );
     });
 
     test('DidlAudioLineIn has correct itemClass', () {
@@ -533,15 +534,24 @@ void main() {
     });
 
     test('DidlComposer has correct itemClass', () {
-      expect(DidlComposer.itemClass, equals('object.container.person.composer'));
+      expect(
+        DidlComposer.itemClass,
+        equals('object.container.person.composer'),
+      );
     });
 
     test('DidlMusicArtist has correct itemClass', () {
-      expect(DidlMusicArtist.itemClass, equals('object.container.person.musicArtist'));
+      expect(
+        DidlMusicArtist.itemClass,
+        equals('object.container.person.musicArtist'),
+      );
     });
 
     test('DidlPlaylistContainer has correct itemClass', () {
-      expect(DidlPlaylistContainer.itemClass, equals('object.container.playlistContainer'));
+      expect(
+        DidlPlaylistContainer.itemClass,
+        equals('object.container.playlistContainer'),
+      );
     });
 
     test('DidlGenre has correct itemClass', () {
@@ -549,7 +559,10 @@ void main() {
     });
 
     test('DidlMusicGenre has correct itemClass', () {
-      expect(DidlMusicGenre.itemClass, equals('object.container.genre.musicGenre'));
+      expect(
+        DidlMusicGenre.itemClass,
+        equals('object.container.genre.musicGenre'),
+      );
     });
 
     test('DidlMusicArtist can be created', () {
@@ -567,25 +580,11 @@ void main() {
   group('SearchResult', () {
     test('creates search result with items', () {
       final items = [
-        DidlMusicTrack(
-          title: 'Track 1',
-          parentId: '0',
-          itemId: '1',
-        ),
-        DidlMusicTrack(
-          title: 'Track 2',
-          parentId: '0',
-          itemId: '2',
-        ),
+        DidlMusicTrack(title: 'Track 1', parentId: '0', itemId: '1'),
+        DidlMusicTrack(title: 'Track 2', parentId: '0', itemId: '2'),
       ];
 
-      final result = SearchResult(
-        items,
-        'tracks',
-        2,
-        100,
-        42,
-      );
+      final result = SearchResult(items, 'tracks', 2, 100, 42);
 
       expect(result.items, hasLength(2));
       expect(result.searchType, equals('tracks'));
@@ -595,13 +594,7 @@ void main() {
     });
 
     test('toString returns formatted string', () {
-      final result = SearchResult(
-        [],
-        'albums',
-        0,
-        50,
-        null,
-      );
+      final result = SearchResult([], 'albums', 0, 50, null);
 
       expect(result.toString(), contains('SearchResult'));
       expect(result.toString(), contains('albums'));
@@ -620,11 +613,13 @@ void main() {
 
       expect(
         () => DidlObject.fromElement(element),
-        throwsA(isA<DIDLMetadataError>().having(
-          (e) => e.message,
-          'message',
-          contains('Wrong element'),
-        )),
+        throwsA(
+          isA<DIDLMetadataError>().having(
+            (e) => e.message,
+            'message',
+            contains('Wrong element'),
+          ),
+        ),
       );
     });
 
@@ -639,7 +634,10 @@ void main() {
       final element1 = doc1.rootElement;
       final result1 = DidlObject.fromElement(element1);
       expect(result1, isA<DidlMusicTrack>());
-      expect(result1.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
+      expect(
+        result1.effectiveItemClass,
+        equals('object.item.audioItem.musicTrack'),
+      );
 
       // Test with # syntax
       final xmlString2 = '''<?xml version="1.0"?>
@@ -651,7 +649,10 @@ void main() {
       final element2 = doc2.rootElement;
       final result2 = DidlObject.fromElement(element2);
       expect(result2, isA<DidlMusicTrack>());
-      expect(result2.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
+      expect(
+        result2.effectiveItemClass,
+        equals('object.item.audioItem.musicTrack'),
+      );
     });
   });
 
@@ -664,11 +665,15 @@ void main() {
 
     test('strips subclass syntax from class name', () {
       // Test with .# syntax
-      final result1 = didlClassToSoCoClass('object.item.audioItem.musicTrack.#subclass');
+      final result1 = didlClassToSoCoClass(
+        'object.item.audioItem.musicTrack.#subclass',
+      );
       expect(result1, equals(DidlMusicTrack));
 
       // Test with # syntax
-      final result2 = didlClassToSoCoClass('object.item.audioItem.musicTrack#subclass');
+      final result2 = didlClassToSoCoClass(
+        'object.item.audioItem.musicTrack#subclass',
+      );
       expect(result2, equals(DidlMusicTrack));
     });
   });
@@ -707,11 +712,7 @@ void main() {
     });
 
     test('includes namespace declarations', () {
-      final track = DidlMusicTrack(
-        title: 'Test',
-        parentId: '0',
-        itemId: '1',
-      );
+      final track = DidlMusicTrack(title: 'Test', parentId: '0', itemId: '1');
 
       final result = toDidlString([track]);
 

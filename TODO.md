@@ -2,7 +2,7 @@
 
 ## Status
 
-**Published:** [soco v0.1.2](https://pub.dev/packages/soco)
+**Published:** [soco v0.1.4](https://pub.dev/packages/soco)
 
 | Metric | Python SoCo | Dart Port |
 |--------|-------------|-----------|
@@ -10,7 +10,7 @@
 | Source lines | ~28,000 | ~22,000 |
 | Test files | 20 | 22 |
 | Unit tests | - | 867 |
-| Code coverage | - | 80.9% |
+| Code coverage | - | 81.7% (core.dart) |
 | Examples | - | 7 |
 | Integration tested | - | ✓ |
 

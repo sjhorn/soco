@@ -6,8 +6,9 @@ import 'package:soco/src/core.dart';
 
 /// Helper to create a successful SOAP response
 String soapResponse(String service, String action, Map<String, String> values) {
-  final args =
-      values.entries.map((e) => '<${e.key}>${e.value}</${e.key}>').join();
+  final args = values.entries
+      .map((e) => '<${e.key}>${e.value}</${e.key}>')
+      .join();
   return '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
             s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -20,7 +21,11 @@ String soapResponse(String service, String action, Map<String, String> values) {
 }
 
 /// Helper to create a ZoneGroupState response
-String zoneGroupStateResponse(String uid, String ip, {bool isCoordinator = true}) {
+String zoneGroupStateResponse(
+  String uid,
+  String ip, {
+  bool isCoordinator = true,
+}) {
   return '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
             s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -294,8 +299,7 @@ void main() {
 
         // Device description XML - needed for getSpeakerInfo/uid
         if (url.contains('/xml/device_description.xml')) {
-          return http.Response(
-            '''<?xml version="1.0"?>
+          return http.Response('''<?xml version="1.0"?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">
   <device>
     <roomName>Test Room</roomName>
@@ -305,9 +309,7 @@ void main() {
     <modelNumber>TEST</modelNumber>
     <modelName>Test Speaker</modelName>
   </device>
-</root>''',
-            200,
-          );
+</root>''', 200);
         }
 
         // ZoneGroupTopology - for isCoordinator check
@@ -324,7 +326,8 @@ void main() {
             return http.Response(
               soapResponse('AVTransport', 'GetMediaInfo', {
                 'CurrentURI': mediaUri,
-                'CurrentURIMetaData': '&lt;DIDL-Lite&gt;metadata&lt;/DIDL-Lite&gt;',
+                'CurrentURIMetaData':
+                    '&lt;DIDL-Lite&gt;metadata&lt;/DIDL-Lite&gt;',
                 'NrTracks': '10',
                 'MediaDuration': '0:45:00',
               }),
@@ -374,28 +377,16 @@ void main() {
             );
           }
           if (body.contains('Play')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Play', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Play', {}), 200);
           }
           if (body.contains('Pause')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Pause', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Pause', {}), 200);
           }
           if (body.contains('Stop')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Stop', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Stop', {}), 200);
           }
           if (body.contains('Seek')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Seek', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Seek', {}), 200);
           }
           if (body.contains('SetAVTransportURI')) {
             return http.Response(
@@ -429,17 +420,13 @@ void main() {
           }
           if (body.contains('GetMute')) {
             return http.Response(
-              soapResponse('RenderingControl', 'GetMute', {
-                'CurrentMute': '0',
-              }),
+              soapResponse('RenderingControl', 'GetMute', {'CurrentMute': '0'}),
               200,
             );
           }
           if (body.contains('GetBass')) {
             return http.Response(
-              soapResponse('RenderingControl', 'GetBass', {
-                'CurrentBass': '3',
-              }),
+              soapResponse('RenderingControl', 'GetBass', {'CurrentBass': '3'}),
               200,
             );
           }
@@ -772,42 +759,46 @@ void main() {
     // to mock properly and are covered by the existing queue playback state
     // capture test above.
 
-    test('restore() restores queue playback with play mode and cross fade', () async {
-      // This test covers lines 235-248 in snapshot.dart
-      // Testing restore of queue playback with play mode and cross fade settings
-      // Note: This requires playFromQueue which needs uid, so we use createMockClient
-      // which sets up the zone group state properly
-      final mockClient = createMockClient(
-        mediaUri: 'x-rincon-queue:RINCON_000E58TEST01400#0',
-        transportState: 'PLAYING',
-      );
-      device.httpClient = mockClient;
+    test(
+      'restore() restores queue playback with play mode and cross fade',
+      () async {
+        // This test covers lines 235-248 in snapshot.dart
+        // Testing restore of queue playback with play mode and cross fade settings
+        // Note: This requires playFromQueue which needs uid, so we use createMockClient
+        // which sets up the zone group state properly
+        final mockClient = createMockClient(
+          mediaUri: 'x-rincon-queue:RINCON_000E58TEST01400#0',
+          transportState: 'PLAYING',
+        );
+        device.httpClient = mockClient;
 
-      final snapshot = Snapshot(device);
-      await snapshot.snapshot();
+        final snapshot = Snapshot(device);
+        await snapshot.snapshot();
 
-      // Verify snapshot captured play mode and cross fade
-      expect(snapshot.playMode, equals('NORMAL'));
-      expect(snapshot.crossFade, isFalse);
-      expect(snapshot.playlistPosition, equals(3));
+        // Verify snapshot captured play mode and cross fade
+        expect(snapshot.playMode, equals('NORMAL'));
+        expect(snapshot.crossFade, isFalse);
+        expect(snapshot.playlistPosition, equals(3));
 
-      capturedRequests.clear();
+        capturedRequests.clear();
 
-      // Restore should call setPlayMode and setCrossFade after playFromQueue
-      await snapshot.restore();
+        // Restore should call setPlayMode and setCrossFade after playFromQueue
+        await snapshot.restore();
 
-      // Verify that SetPlayMode and SetCrossfadeMode were called
-      // (they're called after playFromQueue in the restore flow)
-      final setPlayModeRequests = capturedRequests.where(
-        (r) => r.body.contains('SetPlayMode'),
-      );
-      final setCrossFadeRequests = capturedRequests.where(
-        (r) => r.body.contains('SetCrossfadeMode'),
-      );
+        // Verify that SetPlayMode and SetCrossfadeMode were called
+        // (they're called after playFromQueue in the restore flow)
+        final setPlayModeRequests = capturedRequests.where(
+          (r) => r.body.contains('SetPlayMode'),
+        );
+        final setCrossFadeRequests = capturedRequests.where(
+          (r) => r.body.contains('SetCrossfadeMode'),
+        );
 
-      expect(setPlayModeRequests.isNotEmpty, isTrue);
-      expect(setCrossFadeRequests.isNotEmpty, isTrue);
-    }, timeout: Timeout(Duration(seconds: 10)));
+        expect(setPlayModeRequests.isNotEmpty, isTrue);
+        expect(setCrossFadeRequests.isNotEmpty, isTrue);
+      },
+      timeout: Timeout(Duration(seconds: 10)),
+    );
 
     test('restore() handles fixed volume device', () async {
       // Create a mock that returns volume=100 and fixedVolume=true
@@ -846,16 +837,10 @@ void main() {
             );
           }
           if (body.contains('Pause')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Pause', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Pause', {}), 200);
           }
           if (body.contains('Stop')) {
-            return http.Response(
-              soapResponse('AVTransport', 'Stop', {}),
-              200,
-            );
+            return http.Response(soapResponse('AVTransport', 'Stop', {}), 200);
           }
           if (body.contains('SetAVTransportURI')) {
             return http.Response(
@@ -876,17 +861,13 @@ void main() {
           }
           if (body.contains('GetMute')) {
             return http.Response(
-              soapResponse('RenderingControl', 'GetMute', {
-                'CurrentMute': '0',
-              }),
+              soapResponse('RenderingControl', 'GetMute', {'CurrentMute': '0'}),
               200,
             );
           }
           if (body.contains('GetBass')) {
             return http.Response(
-              soapResponse('RenderingControl', 'GetBass', {
-                'CurrentBass': '0',
-              }),
+              soapResponse('RenderingControl', 'GetBass', {'CurrentBass': '0'}),
               200,
             );
           }

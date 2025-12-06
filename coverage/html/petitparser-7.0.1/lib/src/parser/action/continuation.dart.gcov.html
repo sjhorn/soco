@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - petitparser-7.0.1/lib/src/parser/action/continuation.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory petitparser-7.0.1/lib/src/parser/action">petitparser-7.0.1/lib/src/parser/action</a> - continuation.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">0.0&nbsp;%</td>
+            <td class="headerCovTableEntry">9</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-06 10:24:05</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'package:meta/meta.dart';</span>
+<span id="L2"><span class="lineNum">       2</span>              : </span>
+<span id="L3"><span class="lineNum">       3</span>              : import '../../core/context.dart';</span>
+<span id="L4"><span class="lineNum">       4</span>              : import '../../core/parser.dart';</span>
+<span id="L5"><span class="lineNum">       5</span>              : import '../../core/result.dart';</span>
+<span id="L6"><span class="lineNum">       6</span>              : import '../../parser/combinator/delegate.dart';</span>
+<span id="L7"><span class="lineNum">       7</span>              : </span>
+<span id="L8"><span class="lineNum">       8</span>              : /// Handler function for the [ContinuationParser].</span>
+<span id="L9"><span class="lineNum">       9</span>              : typedef ContinuationHandler&lt;R, S&gt; =</span>
+<span id="L10"><span class="lineNum">      10</span>              :     Result&lt;S&gt; Function(ContinuationFunction&lt;R&gt; continuation, Context context);</span>
+<span id="L11"><span class="lineNum">      11</span>              : </span>
+<span id="L12"><span class="lineNum">      12</span>              : /// Continuation function of the [ContinuationHandler].</span>
+<span id="L13"><span class="lineNum">      13</span>              : typedef ContinuationFunction&lt;R&gt; = Result&lt;R&gt; Function(Context context);</span>
+<span id="L14"><span class="lineNum">      14</span>              : </span>
+<span id="L15"><span class="lineNum">      15</span>              : extension ContinuationParserExtension&lt;R&gt; on Parser&lt;R&gt; {</span>
+<span id="L16"><span class="lineNum">      16</span>              :   /// Returns a parser that when activated captures a continuation function</span>
+<span id="L17"><span class="lineNum">      17</span>              :   /// and passes it together with the current context into the handler.</span>
+<span id="L18"><span class="lineNum">      18</span>              :   ///</span>
+<span id="L19"><span class="lineNum">      19</span>              :   /// Handlers are not required to call the continuation, but can completely</span>
+<span id="L20"><span class="lineNum">      20</span>              :   /// ignore it, call it multiple times, and/or store it away for later use.</span>
+<span id="L21"><span class="lineNum">      21</span>              :   /// Similarly handlers can modify the current context and/or modify the</span>
+<span id="L22"><span class="lineNum">      22</span>              :   /// returned result.</span>
+<span id="L23"><span class="lineNum">      23</span>              :   ///</span>
+<span id="L24"><span class="lineNum">      24</span>              :   /// The following example shows a simple wrapper. Messages are printed before</span>
+<span id="L25"><span class="lineNum">      25</span>              :   /// and after the `digit()` parser is activated:</span>
+<span id="L26"><span class="lineNum">      26</span>              :   ///</span>
+<span id="L27"><span class="lineNum">      27</span>              :   /// ```dart</span>
+<span id="L28"><span class="lineNum">      28</span>              :   /// final parser = digit().callCC((continuation, context) {</span>
+<span id="L29"><span class="lineNum">      29</span>              :   ///   print('Parser will be activated, the context is $context.');</span>
+<span id="L30"><span class="lineNum">      30</span>              :   ///   final result = continuation(context);</span>
+<span id="L31"><span class="lineNum">      31</span>              :   ///   print('Parser was activated, the result is $result.');</span>
+<span id="L32"><span class="lineNum">      32</span>              :   ///   return result;</span>
+<span id="L33"><span class="lineNum">      33</span>              :   /// });</span>
+<span id="L34"><span class="lineNum">      34</span>              :   /// ```</span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaUNC">           0 :   @useResult</span></span>
+<span id="L36"><span class="lineNum">      36</span>              :   Parser&lt;S&gt; callCC&lt;S&gt;(ContinuationHandler&lt;R, S&gt; handler) =&gt;</span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaUNC">           0 :       ContinuationParser&lt;R, S&gt;(this, handler);</span></span>
+<span id="L38"><span class="lineNum">      38</span>              : }</span>
+<span id="L39"><span class="lineNum">      39</span>              : </span>
+<span id="L40"><span class="lineNum">      40</span>              : /// Continuation parser that when activated captures a continuation function</span>
+<span id="L41"><span class="lineNum">      41</span>              : /// and passes it together with the current context into the handler.</span>
+<span id="L42"><span class="lineNum">      42</span>              : class ContinuationParser&lt;R, S&gt; extends DelegateParser&lt;R, S&gt; {</span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaUNC">           0 :   ContinuationParser(super.delegate, this.handler);</span></span>
+<span id="L44"><span class="lineNum">      44</span>              : </span>
+<span id="L45"><span class="lineNum">      45</span>              :   /// Activation handler of the continuation.</span>
+<span id="L46"><span class="lineNum">      46</span>              :   final ContinuationHandler&lt;R, S&gt; handler;</span>
+<span id="L47"><span class="lineNum">      47</span>              : </span>
+<span id="L48"><span class="lineNum">      48</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaUNC">           0 :   Result&lt;S&gt; parseOn(Context context) =&gt; handler(delegate.parseOn, context);</span></span>
+<span id="L50"><span class="lineNum">      50</span>              : </span>
+<span id="L51"><span class="lineNum">      51</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L52"><span class="lineNum">      52</span>              :   ContinuationParser&lt;R, S&gt; copy() =&gt;</span>
+<span id="L53"><span class="lineNum">      53</span> <span class="tlaUNC">           0 :       ContinuationParser&lt;R, S&gt;(delegate, handler);</span></span>
+<span id="L54"><span class="lineNum">      54</span>              : </span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L56"><span class="lineNum">      56</span>              :   bool hasEqualProperties(ContinuationParser&lt;R, S&gt; other) =&gt;</span>
+<span id="L57"><span class="lineNum">      57</span> <span class="tlaUNC">           0 :       super.hasEqualProperties(other) &amp;&amp; handler == other.handler;</span></span>
+<span id="L58"><span class="lineNum">      58</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

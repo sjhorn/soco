@@ -246,10 +246,7 @@ void main() {
       final fault = SoCoFault(exception);
 
       // Accessing any property should throw
-      expect(
-        () => (fault as dynamic).someProperty,
-        throwsA(equals(exception)),
-      );
+      expect(() => (fault as dynamic).someProperty, throwsA(equals(exception)));
     });
 
     test('throws exception on method call via noSuchMethod', () {
@@ -257,10 +254,7 @@ void main() {
       final fault = SoCoFault(exception);
 
       // Calling any method should throw
-      expect(
-        () => (fault as dynamic).someMethod(),
-        throwsA(equals(exception)),
-      );
+      expect(() => (fault as dynamic).someMethod(), throwsA(equals(exception)));
     });
   });
 
@@ -281,11 +275,7 @@ void main() {
         const SoCoSlaveException('slave'),
         const SoCoNotVisibleException('not visible'),
         const NotSupportedException('not supported'),
-        EventParseException(
-          tag: 'tag',
-          metadata: 'meta',
-          cause: Exception(),
-        ),
+        EventParseException(tag: 'tag', metadata: 'meta', cause: Exception()),
       ];
 
       for (final e in exceptions) {

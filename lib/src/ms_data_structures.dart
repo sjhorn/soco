@@ -15,8 +15,13 @@ final Map<String, Type> _msTypeToClass = {};
 /// The Dart xml package's findElements uses local names only.
 /// This helper finds elements that match both local name and namespace.
 Iterable<XmlElement> _findElementsNs(
-    XmlElement xml, String nsUri, String localName) {
-  return xml.findElements(localName).where(
+  XmlElement xml,
+  String nsUri,
+  String localName,
+) {
+  return xml
+      .findElements(localName)
+      .where(
         (e) => e.name.namespaceUri == nsUri || e.name.namespaceUri == null,
       );
 }
@@ -34,8 +39,9 @@ MusicServiceItem getMsItem(XmlElement xml, dynamic service, String parentId) {
 
   if (itemTypeElements.isEmpty) {
     throw StateError(
-        'No itemType element found in XML. '
-        'XML contains: ${xml.childElements.map((e) => e.name.local).toList()}');
+      'No itemType element found in XML. '
+      'XML contains: ${xml.childElements.map((e) => e.name.local).toList()}',
+    );
   }
 
   final itemType = itemTypeElements.first.innerText;

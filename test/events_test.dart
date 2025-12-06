@@ -149,12 +149,7 @@ void main() {
     });
 
     test('Event with empty variables', () {
-      final event = Event(
-        'sid1',
-        '1',
-        MockService(),
-        123456.7,
-      );
+      final event = Event('sid1', '1', MockService(), 123456.7);
 
       expect(event.variables, isEmpty);
       expect(event['anything'], isNull);
@@ -177,7 +172,10 @@ void main() {
       final result = parseEventXml(xml);
 
       expect(result['transport_state'], equals('PLAYING'));
-      expect(result['current_track_uri'], equals('x-file-cifs://server/music.mp3'));
+      expect(
+        result['current_track_uri'],
+        equals('x-file-cifs://server/music.mp3'),
+      );
     });
 
     test('parses LastChange AVTransport events', () {
@@ -394,7 +392,8 @@ void main() {
 
     test('timeLeft returns 0 when expired', () {
       final sub = MockSubscription(MockService());
-      sub.timestamp = DateTime.now().millisecondsSinceEpoch / 1000.0 - 7200; // 2 hours ago
+      sub.timestamp =
+          DateTime.now().millisecondsSinceEpoch / 1000.0 - 7200; // 2 hours ago
       sub.timeout = 3600; // 1 hour timeout (expired 1 hour ago)
 
       expect(sub.timeLeft, equals(0));
@@ -402,7 +401,13 @@ void main() {
 
     test('sendEvent adds event to stream', () async {
       final sub = MockSubscription(MockService());
-      final event = Event('sid', '1', MockService(), 123456.7, variables: {'test': 'value'});
+      final event = Event(
+        'sid',
+        '1',
+        MockService(),
+        123456.7,
+        variables: {'test': 'value'},
+      );
 
       // Listen to events
       final events = <Event>[];
@@ -418,24 +423,29 @@ void main() {
       expect(events[0].variables['test'], equals('value'));
     }, timeout: Timeout(Duration(seconds: 5)));
 
-    test('sendEvent does nothing when stream is closed', () async {
-      MockSubscription(MockService());
-      final eventListener = MockEventListener();
-      final subscriptionsMap = SubscriptionsMap();
-      final sub2 = MockSubscription(MockService(),
-        eventListener: eventListener,
-        subscriptionsMap: subscriptionsMap,
-      );
-      sub2.sid = 'test-sid';
-      subscriptionsMap.register(sub2);
+    test(
+      'sendEvent does nothing when stream is closed',
+      () async {
+        MockSubscription(MockService());
+        final eventListener = MockEventListener();
+        final subscriptionsMap = SubscriptionsMap();
+        final sub2 = MockSubscription(
+          MockService(),
+          eventListener: eventListener,
+          subscriptionsMap: subscriptionsMap,
+        );
+        sub2.sid = 'test-sid';
+        subscriptionsMap.register(sub2);
 
-      // Cancel subscription (closes stream)
-      await sub2.cancelSubscription();
+        // Cancel subscription (closes stream)
+        await sub2.cancelSubscription();
 
-      // This should not throw
-      final event = Event('sid', '1', MockService(), 123456.7);
-      sub2.sendEvent(event);
-    }, timeout: Timeout(Duration(seconds: 5)));
+        // This should not throw
+        final event = Event('sid', '1', MockService(), 123456.7);
+        sub2.sendEvent(event);
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('autoRenewCancel cancels timer', () {
       final sub = MockSubscription(MockService());
@@ -450,41 +460,51 @@ void main() {
       expect(true, isTrue);
     }, timeout: Timeout(Duration(seconds: 5)));
 
-    test('cancelSubscription unregisters and stops listener when no subs left', () async {
-      final eventListener = MockEventListener();
-      final subscriptionsMap = SubscriptionsMap();
-      final sub = MockSubscription(MockService(),
-        eventListener: eventListener,
-        subscriptionsMap: subscriptionsMap,
-      );
-      sub.sid = 'test-sid';
-      subscriptionsMap.register(sub);
+    test(
+      'cancelSubscription unregisters and stops listener when no subs left',
+      () async {
+        final eventListener = MockEventListener();
+        final subscriptionsMap = SubscriptionsMap();
+        final sub = MockSubscription(
+          MockService(),
+          eventListener: eventListener,
+          subscriptionsMap: subscriptionsMap,
+        );
+        sub.sid = 'test-sid';
+        subscriptionsMap.register(sub);
 
-      expect(subscriptionsMap.count, equals(1));
+        expect(subscriptionsMap.count, equals(1));
 
-      await sub.cancelSubscription(msg: 'Test cancel');
+        await sub.cancelSubscription(msg: 'Test cancel');
 
-      expect(subscriptionsMap.count, equals(0));
-      expect(eventListener.stopCalled, isTrue);
-      expect(sub.isSubscribed, isFalse);
-      expect(sub.hasBeenUnsubscribed, isTrue);
-    }, timeout: Timeout(Duration(seconds: 5)));
+        expect(subscriptionsMap.count, equals(0));
+        expect(eventListener.stopCalled, isTrue);
+        expect(sub.isSubscribed, isFalse);
+        expect(sub.hasBeenUnsubscribed, isTrue);
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('cancelSubscription does nothing if already unsubscribed', () async {
-      final eventListener = MockEventListener();
-      final subscriptionsMap = SubscriptionsMap();
-      final sub = MockSubscription(MockService(),
-        eventListener: eventListener,
-        subscriptionsMap: subscriptionsMap,
-      );
+    test(
+      'cancelSubscription does nothing if already unsubscribed',
+      () async {
+        final eventListener = MockEventListener();
+        final subscriptionsMap = SubscriptionsMap();
+        final sub = MockSubscription(
+          MockService(),
+          eventListener: eventListener,
+          subscriptionsMap: subscriptionsMap,
+        );
 
-      sub.hasBeenUnsubscribed = true;
+        sub.hasBeenUnsubscribed = true;
 
-      await sub.cancelSubscription();
+        await sub.cancelSubscription();
 
-      // Should return early without modifying state
-      expect(sub.hasBeenUnsubscribed, isTrue);
-    }, timeout: Timeout(Duration(seconds: 5)));
+        // Should return early without modifying state
+        expect(sub.hasBeenUnsubscribed, isTrue);
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('dispose calls unsubscribe', () async {
       final sub = MockSubscription(MockService());
@@ -505,24 +525,27 @@ void main() {
   });
 
   group('EventNotifyHandlerBase', () {
-    test('handleNotification processes events correctly', () async {
-      final subscriptionsMap = SubscriptionsMap();
-      final handler = MockNotifyHandler(subscriptionsMap);
-      final service = MockService();
-      final eventListener = MockEventListener();
-      final sub = MockSubscription(service,
-        eventListener: eventListener,
-        subscriptionsMap: subscriptionsMap,
-      );
-      sub.sid = 'test-sid-notify';
-      sub.isSubscribed = true;
-      subscriptionsMap.register(sub);
+    test(
+      'handleNotification processes events correctly',
+      () async {
+        final subscriptionsMap = SubscriptionsMap();
+        final handler = MockNotifyHandler(subscriptionsMap);
+        final service = MockService();
+        final eventListener = MockEventListener();
+        final sub = MockSubscription(
+          service,
+          eventListener: eventListener,
+          subscriptionsMap: subscriptionsMap,
+        );
+        sub.sid = 'test-sid-notify';
+        sub.isSubscribed = true;
+        subscriptionsMap.register(sub);
 
-      // Collect events
-      final receivedEvents = <Event>[];
-      sub.events.listen((e) => receivedEvents.add(e));
+        // Collect events
+        final receivedEvents = <Event>[];
+        sub.events.listen((e) => receivedEvents.add(e));
 
-      const content = '''
+        const content = '''
         <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
           <e:property>
             <TestVar>TestValue</TestVar>
@@ -530,23 +553,25 @@ void main() {
         </e:propertyset>
       ''';
 
-      handler.handleNotification({
-        'sid': 'test-sid-notify',
-        'seq': '42',
-      }, content);
+        handler.handleNotification({
+          'sid': 'test-sid-notify',
+          'seq': '42',
+        }, content);
 
-      // Give time for async delivery
-      await Future<void>.delayed(Duration(milliseconds: 10));
+        // Give time for async delivery
+        await Future<void>.delayed(Duration(milliseconds: 10));
 
-      expect(handler.loggedEvents.length, equals(1));
-      expect(handler.loggedEvents[0].$1, equals('42')); // seq
-      expect(handler.loggedEvents[0].$2, equals('test_service')); // serviceId
+        expect(handler.loggedEvents.length, equals(1));
+        expect(handler.loggedEvents[0].$1, equals('42')); // seq
+        expect(handler.loggedEvents[0].$2, equals('test_service')); // serviceId
 
-      expect(receivedEvents.length, equals(1));
-      expect(receivedEvents[0].seq, equals('42'));
-      expect(receivedEvents[0].sid, equals('test-sid-notify'));
-      expect(receivedEvents[0]['test_var'], equals('TestValue'));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        expect(receivedEvents.length, equals(1));
+        expect(receivedEvents[0].seq, equals('42'));
+        expect(receivedEvents[0].sid, equals('test-sid-notify'));
+        expect(receivedEvents[0]['test_var'], equals('TestValue'));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('handleNotification handles missing subscription gracefully', () {
       final subscriptionsMap = SubscriptionsMap();
@@ -561,29 +586,29 @@ void main() {
       ''';
 
       // Should not throw even when no subscription exists
-      handler.handleNotification({
-        'sid': 'unknown-sid',
-        'seq': '1',
-      }, content);
+      handler.handleNotification({'sid': 'unknown-sid', 'seq': '1'}, content);
 
       expect(handler.loggedEvents, isEmpty);
     });
 
-    test('handleNotification handles uppercase headers', () async {
-      final subscriptionsMap = SubscriptionsMap();
-      final handler = MockNotifyHandler(subscriptionsMap);
-      final eventListener = MockEventListener();
-      final sub = MockSubscription(MockService(),
-        eventListener: eventListener,
-        subscriptionsMap: subscriptionsMap,
-      );
-      sub.sid = 'upper-sid';
-      subscriptionsMap.register(sub);
+    test(
+      'handleNotification handles uppercase headers',
+      () async {
+        final subscriptionsMap = SubscriptionsMap();
+        final handler = MockNotifyHandler(subscriptionsMap);
+        final eventListener = MockEventListener();
+        final sub = MockSubscription(
+          MockService(),
+          eventListener: eventListener,
+          subscriptionsMap: subscriptionsMap,
+        );
+        sub.sid = 'upper-sid';
+        subscriptionsMap.register(sub);
 
-      final receivedEvents = <Event>[];
-      sub.events.listen((e) => receivedEvents.add(e));
+        final receivedEvents = <Event>[];
+        sub.events.listen((e) => receivedEvents.add(e));
 
-      const content = '''
+        const content = '''
         <e:propertyset xmlns:e="urn:schemas-upnp-org:event-1-0">
           <e:property>
             <Value>Test</Value>
@@ -591,16 +616,15 @@ void main() {
         </e:propertyset>
       ''';
 
-      handler.handleNotification({
-        'SID': 'upper-sid',
-        'SEQ': '99',
-      }, content);
+        handler.handleNotification({'SID': 'upper-sid', 'SEQ': '99'}, content);
 
-      await Future<void>.delayed(Duration(milliseconds: 10));
+        await Future<void>.delayed(Duration(milliseconds: 10));
 
-      expect(receivedEvents.length, equals(1));
-      expect(receivedEvents[0].seq, equals('99'));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        expect(receivedEvents.length, equals(1));
+        expect(receivedEvents[0].seq, equals('99'));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
   });
 
   group('EventListenerBase', () {
@@ -677,7 +701,8 @@ class MockSubscription extends SubscriptionBase {
   final MockEventListener _eventListener;
   final SubscriptionsMap _subscriptionsMap;
 
-  MockSubscription(super.service, {
+  MockSubscription(
+    super.service, {
     MockEventListener? eventListener,
     SubscriptionsMap? subscriptionsMap,
   }) : _eventListener = eventListener ?? MockEventListener(),
@@ -690,7 +715,10 @@ class MockSubscription extends SubscriptionBase {
   SubscriptionsMap get subscriptionsMap => _subscriptionsMap;
 
   @override
-  Future<void> subscribe({int? requestedTimeout, bool autoRenew = false}) async {}
+  Future<void> subscribe({
+    int? requestedTimeout,
+    bool autoRenew = false,
+  }) async {}
 
   @override
   Future<void> renew({int? requestedTimeout, bool isAutorenew = false}) async {}

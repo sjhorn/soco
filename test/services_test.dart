@@ -10,7 +10,9 @@ import 'package:soco/src/exceptions.dart';
 
 /// Helper to create a successful SOAP response
 String successResponse(String actionName, Map<String, String> values) {
-  final args = values.entries.map((e) => '<${e.key}>${e.value}</${e.key}>').join();
+  final args = values.entries
+      .map((e) => '<${e.key}>${e.value}</${e.key}>')
+      .join();
   return '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
             s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -154,9 +156,7 @@ void main() {
 
     group('wrapArguments', () {
       test('wraps single argument', () {
-        final result = Service.wrapArguments([
-          const MapEntry('InstanceID', 0),
-        ]);
+        final result = Service.wrapArguments([const MapEntry('InstanceID', 0)]);
 
         expect(result, equals('<InstanceID>0</InstanceID>'));
       });
@@ -296,139 +296,172 @@ void main() {
     });
 
     group('sendCommand', () {
-      test('sends command and returns parsed response', () async {
-        final mockClient = MockClient((request) async {
-          expect(request.url.path, contains('/RenderingControl/Control'));
-          expect(request.headers['SOAPACTION'], contains('GetVolume'));
-          return http.Response(
-            successResponse('GetVolume', {'CurrentVolume': '75'}),
-            200,
+      test(
+        'sends command and returns parsed response',
+        () async {
+          final mockClient = MockClient((request) async {
+            expect(request.url.path, contains('/RenderingControl/Control'));
+            expect(request.headers['SOAPACTION'], contains('GetVolume'));
+            return http.Response(
+              successResponse('GetVolume', {'CurrentVolume': '75'}),
+              200,
+            );
+          });
+
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
+
+          final result = await service.sendCommand(
+            'GetVolume',
+            args: [
+              const MapEntry('InstanceID', 0),
+              const MapEntry('Channel', 'Master'),
+            ],
           );
-        });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          expect(result['CurrentVolume'], equals('75'));
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-        final result = await service.sendCommand('GetVolume', args: [
-          const MapEntry('InstanceID', 0),
-          const MapEntry('Channel', 'Master'),
-        ]);
+      test(
+        'throws SoCoUPnPException on UPnP error',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response(errorResponse(402, 'Invalid Args'), 500);
+          });
 
-        expect(result['CurrentVolume'], equals('75'));
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-      test('throws SoCoUPnPException on UPnP error', () async {
-        final mockClient = MockClient((request) async {
-          return http.Response(errorResponse(402, 'Invalid Args'), 500);
-        });
-
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
-
-        expect(
-          () => service.sendCommand('SetVolume', args: [
-            const MapEntry('InstanceID', 0),
-            const MapEntry('DesiredVolume', 150), // Invalid value
-          ]),
-          throwsA(
-            isA<SoCoUPnPException>()
-                .having((e) => e.errorCode, 'errorCode', '402'),
-          ),
-        );
-      }, timeout: Timeout(Duration(seconds: 5)));
-
-      test('throws ClientException on non-200/500 response', () async {
-        final mockClient = MockClient((request) async {
-          return http.Response('Not Found', 404);
-        });
-
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
-
-        expect(
-          () => service.sendCommand('GetVolume'),
-          throwsA(isA<http.ClientException>()),
-        );
-      }, timeout: Timeout(Duration(seconds: 5)));
-
-      test('caches responses when cache is enabled', () async {
-        var callCount = 0;
-        final mockClient = MockClient((request) async {
-          callCount++;
-          return http.Response(
-            successResponse('GetVolume', {'CurrentVolume': '50'}),
-            200,
+          expect(
+            () => service.sendCommand(
+              'SetVolume',
+              args: [
+                const MapEntry('InstanceID', 0),
+                const MapEntry('DesiredVolume', 150), // Invalid value
+              ],
+            ),
+            throwsA(
+              isA<SoCoUPnPException>().having(
+                (e) => e.errorCode,
+                'errorCode',
+                '402',
+              ),
+            ),
           );
-        });
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
-        // Enable cache with a timeout
-        service.cache.enabled = true;
+      test(
+        'throws ClientException on non-200/500 response',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response('Not Found', 404);
+          });
 
-        // First call should hit network
-        await service.sendCommand(
-          'GetVolume',
-          args: [const MapEntry('InstanceID', 0)],
-          useCache: true,
-        );
-        expect(callCount, equals(1));
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        // Second call with same args should use cache
-        await service.sendCommand(
-          'GetVolume',
-          args: [const MapEntry('InstanceID', 0)],
-          useCache: true,
-        );
-        // Note: Cache may not work due to cache key implementation
-        // This test documents the expected behavior
-      }, timeout: Timeout(Duration(seconds: 5)));
-
-      test('bypasses cache when useCache is false', () async {
-        var callCount = 0;
-        final mockClient = MockClient((request) async {
-          callCount++;
-          return http.Response(
-            successResponse('GetVolume', {'CurrentVolume': '50'}),
-            200,
+          expect(
+            () => service.sendCommand('GetVolume'),
+            throwsA(isA<http.ClientException>()),
           );
-        });
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+      test(
+        'caches responses when cache is enabled',
+        () async {
+          var callCount = 0;
+          final mockClient = MockClient((request) async {
+            callCount++;
+            return http.Response(
+              successResponse('GetVolume', {'CurrentVolume': '50'}),
+              200,
+            );
+          });
 
-        await service.sendCommand(
-          'GetVolume',
-          args: [const MapEntry('InstanceID', 0)],
-          useCache: false,
-        );
-        await service.sendCommand(
-          'GetVolume',
-          args: [const MapEntry('InstanceID', 0)],
-          useCache: false,
-        );
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
+          // Enable cache with a timeout
+          service.cache.enabled = true;
 
-        expect(callCount, equals(2));
-      }, timeout: Timeout(Duration(seconds: 5)));
+          // First call should hit network
+          await service.sendCommand(
+            'GetVolume',
+            args: [const MapEntry('InstanceID', 0)],
+            useCache: true,
+          );
+          expect(callCount, equals(1));
+
+          // Second call with same args should use cache
+          await service.sendCommand(
+            'GetVolume',
+            args: [const MapEntry('InstanceID', 0)],
+            useCache: true,
+          );
+          // Note: Cache may not work due to cache key implementation
+          // This test documents the expected behavior
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
+
+      test(
+        'bypasses cache when useCache is false',
+        () async {
+          var callCount = 0;
+          final mockClient = MockClient((request) async {
+            callCount++;
+            return http.Response(
+              successResponse('GetVolume', {'CurrentVolume': '50'}),
+              200,
+            );
+          });
+
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
+
+          await service.sendCommand(
+            'GetVolume',
+            args: [const MapEntry('InstanceID', 0)],
+            useCache: false,
+          );
+          await service.sendCommand(
+            'GetVolume',
+            args: [const MapEntry('InstanceID', 0)],
+            useCache: false,
+          );
+
+          expect(callCount, equals(2));
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('handleUpnpError', () {
-      test('throws SoCoUPnPException with error details', () {
-        final service = RenderingControl(device);
+      test(
+        'throws SoCoUPnPException with error details',
+        () {
+          final service = RenderingControl(device);
 
-        expect(
-          () => service.handleUpnpError(errorResponse(402, 'Invalid Args')),
-          throwsA(
-            isA<SoCoUPnPException>()
-                .having((e) => e.errorCode, 'errorCode', '402')
-                .having(
-                  (e) => e.errorDescription,
-                  'errorDescription',
-                  'Invalid Args',
-                ),
-          ),
-        );
-      }, timeout: Timeout(Duration(seconds: 5)));
+          expect(
+            () => service.handleUpnpError(errorResponse(402, 'Invalid Args')),
+            throwsA(
+              isA<SoCoUPnPException>()
+                  .having((e) => e.errorCode, 'errorCode', '402')
+                  .having(
+                    (e) => e.errorDescription,
+                    'errorDescription',
+                    'Invalid Args',
+                  ),
+            ),
+          );
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
       test('uses known error message for standard error codes', () {
         final service = RenderingControl(device);
@@ -517,7 +550,9 @@ void main() {
     test('controlUrl is correctly formed', () {
       final service = RenderingControl(device);
       expect(
-          service.controlUrl, equals('/MediaRenderer/RenderingControl/Control'));
+        service.controlUrl,
+        equals('/MediaRenderer/RenderingControl/Control'),
+      );
     });
 
     test('AudioIn has correct service type', () {
@@ -558,22 +593,27 @@ void main() {
       device = SoCo('192.168.50.100');
     });
 
-
     group('actions getter', () {
-      test('returns empty list when SCPD fetch fails', () async {
-        final mockClient = MockClient((request) async {
-          return http.Response('Not Found', 404);
-        });
+      test(
+        'returns empty list when SCPD fetch fails',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response('Not Found', 404);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final actions = await service.actions;
-        expect(actions, isEmpty);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final actions = await service.actions;
+          expect(actions, isEmpty);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-      test('parses SCPD document and returns actions', () async {
-        final scpdXml = '''<?xml version="1.0"?>
+      test(
+        'parses SCPD document and returns actions',
+        () async {
+          final scpdXml = '''<?xml version="1.0"?>
 <scpd xmlns="urn:schemas-upnp-org:service-1-0">
   <serviceStateTable>
     <stateVariable sendEvents="yes">
@@ -639,46 +679,54 @@ void main() {
   </actionList>
 </scpd>''';
 
-        final mockClient = MockClient((request) async {
-          expect(request.url.path, contains('/xml/RenderingControl1.xml'));
-          return http.Response(scpdXml, 200);
-        });
+          final mockClient = MockClient((request) async {
+            expect(request.url.path, contains('/xml/RenderingControl1.xml'));
+            return http.Response(scpdXml, 200);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final actions = await service.actions;
+          final actions = await service.actions;
 
-        expect(actions.length, equals(2));
-        expect(actions.any((a) => a.name == 'GetVolume'), isTrue);
-        expect(actions.any((a) => a.name == 'SetVolume'), isTrue);
+          expect(actions.length, equals(2));
+          expect(actions.any((a) => a.name == 'GetVolume'), isTrue);
+          expect(actions.any((a) => a.name == 'SetVolume'), isTrue);
 
-        final getVolume = actions.firstWhere((a) => a.name == 'GetVolume');
-        expect(getVolume.inArgs.length, equals(2));
-        expect(getVolume.outArgs.length, equals(1));
-        expect(getVolume.outArgs.first.name, equals('CurrentVolume'));
+          final getVolume = actions.firstWhere((a) => a.name == 'GetVolume');
+          expect(getVolume.inArgs.length, equals(2));
+          expect(getVolume.outArgs.length, equals(1));
+          expect(getVolume.outArgs.first.name, equals('CurrentVolume'));
 
-        // Second call should return same cached instance
-        final actions2 = await service.actions;
-        expect(identical(actions, actions2), isTrue);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          // Second call should return same cached instance
+          final actions2 = await service.actions;
+          expect(identical(actions, actions2), isTrue);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('eventVars getter', () {
-      test('returns empty map when SCPD fetch fails', () async {
-        final mockClient = MockClient((request) async {
-          return http.Response('Not Found', 404);
-        });
+      test(
+        'returns empty map when SCPD fetch fails',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response('Not Found', 404);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final vars = await service.eventVars;
-        expect(vars, isEmpty);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final vars = await service.eventVars;
+          expect(vars, isEmpty);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-      test('parses SCPD document and returns event variables', () async {
-        final scpdXml = '''<?xml version="1.0"?>
+      test(
+        'parses SCPD document and returns event variables',
+        () async {
+          final scpdXml = '''<?xml version="1.0"?>
 <scpd xmlns="urn:schemas-upnp-org:service-1-0">
   <serviceStateTable>
     <stateVariable sendEvents="yes">
@@ -696,44 +744,52 @@ void main() {
   </serviceStateTable>
 </scpd>''';
 
-        final mockClient = MockClient((request) async {
-          expect(request.url.path, contains('/xml/RenderingControl1.xml'));
-          return http.Response(scpdXml, 200);
-        });
+          final mockClient = MockClient((request) async {
+            expect(request.url.path, contains('/xml/RenderingControl1.xml'));
+            return http.Response(scpdXml, 200);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final vars = await service.eventVars;
+          final vars = await service.eventVars;
 
-        expect(vars.length, equals(2));
-        expect(vars.containsKey('Volume'), isTrue);
-        expect(vars.containsKey('Mute'), isTrue);
-        expect(vars['Volume'], equals('ui2'));
-        expect(vars['Mute'], equals('boolean'));
-        expect(vars.containsKey('InternalState'), isFalse); // sendEvents="no"
+          expect(vars.length, equals(2));
+          expect(vars.containsKey('Volume'), isTrue);
+          expect(vars.containsKey('Mute'), isTrue);
+          expect(vars['Volume'], equals('ui2'));
+          expect(vars['Mute'], equals('boolean'));
+          expect(vars.containsKey('InternalState'), isFalse); // sendEvents="no"
 
-        // Second call should return same cached instance
-        final vars2 = await service.eventVars;
-        expect(identical(vars, vars2), isTrue);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          // Second call should return same cached instance
+          final vars2 = await service.eventVars;
+          expect(identical(vars, vars2), isTrue);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('iterActions', () {
-      test('yields no actions when actions list is empty', () async {
-        final mockClient = MockClient((request) async {
-          return http.Response('Not Found', 404);
-        });
+      test(
+        'yields no actions when actions list is empty',
+        () async {
+          final mockClient = MockClient((request) async {
+            return http.Response('Not Found', 404);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final actions = await service.iterActions().toList();
-        expect(actions, isEmpty);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final actions = await service.iterActions().toList();
+          expect(actions, isEmpty);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-      test('yields actions from parsed SCPD document', () async {
-        final scpdXml = '''<?xml version="1.0"?>
+      test(
+        'yields actions from parsed SCPD document',
+        () async {
+          final scpdXml = '''<?xml version="1.0"?>
 <scpd xmlns="urn:schemas-upnp-org:service-1-0">
   <serviceStateTable>
     <stateVariable sendEvents="no">
@@ -755,45 +811,45 @@ void main() {
   </actionList>
 </scpd>''';
 
-        final mockClient = MockClient((request) async {
-          return http.Response(scpdXml, 200);
-        });
+          final mockClient = MockClient((request) async {
+            return http.Response(scpdXml, 200);
+          });
 
-        final service = RenderingControl(device);
-        service.httpClient = mockClient;
+          final service = RenderingControl(device);
+          service.httpClient = mockClient;
 
-        final actions = await service.iterActions().toList();
-        expect(actions.length, equals(1));
-        expect(actions.first.name, equals('GetVolume'));
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final actions = await service.iterActions().toList();
+          expect(actions.length, equals(1));
+          expect(actions.first.name, equals('GetVolume'));
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('subscribe', () {
       test('throws UnimplementedError', () async {
         final service = RenderingControl(device);
 
-        expect(
-          () => service.subscribe(),
-          throwsA(isA<UnimplementedError>()),
-        );
+        expect(() => service.subscribe(), throwsA(isA<UnimplementedError>()));
       }, timeout: Timeout(Duration(seconds: 5)));
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('updateCacheOnEvent', () {
-      test('updates cache with event variables', () {
-        final service = RenderingControl(device);
+      test(
+        'updates cache with event variables',
+        () {
+          final service = RenderingControl(device);
 
-        // Create a mock event object with variables
-        final mockEvent = _MockEvent({
-          'Volume': '50',
-          'Mute': '0',
-        });
+          // Create a mock event object with variables
+          final mockEvent = _MockEvent({'Volume': '50', 'Mute': '0'});
 
-        // This should not throw
-        service.updateCacheOnEvent(mockEvent);
+          // This should not throw
+          service.updateCacheOnEvent(mockEvent);
 
-        // We can't easily verify cache contents, but we verify it doesn't throw
-      }, timeout: Timeout(Duration(seconds: 5)));
+          // We can't easily verify cache contents, but we verify it doesn't throw
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('additionalHeaders', () {
@@ -833,9 +889,11 @@ void main() {
     }, timeout: Timeout(Duration(seconds: 5)));
 
     group('unwrapArguments', () {
-      test('handles XML with illegal characters by filtering', () {
-        // XML with a control character that would normally fail parsing
-        final xmlWithControlChar = '''<?xml version="1.0"?>
+      test(
+        'handles XML with illegal characters by filtering',
+        () {
+          // XML with a control character that would normally fail parsing
+          final xmlWithControlChar = '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
   <s:Body>
     <u:GetVolumeResponse xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
@@ -844,14 +902,18 @@ void main() {
   </s:Body>
 </s:Envelope>''';
 
-        // Should not throw - it should filter the illegal char and parse
-        final result = Service.unwrapArguments(xmlWithControlChar);
-        expect(result, isA<Map<String, String>>());
-        expect(result.containsKey('CurrentVolume'), isTrue);
-      }, timeout: Timeout(Duration(seconds: 5)));
+          // Should not throw - it should filter the illegal char and parse
+          final result = Service.unwrapArguments(xmlWithControlChar);
+          expect(result, isA<Map<String, String>>());
+          expect(result.containsKey('CurrentVolume'), isTrue);
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
 
-      test('parses valid SOAP response correctly', () {
-        final validXml = '''<?xml version="1.0"?>
+      test(
+        'parses valid SOAP response correctly',
+        () {
+          final validXml = '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
   <s:Body>
     <u:GetVolumeResponse xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
@@ -860,9 +922,11 @@ void main() {
   </s:Body>
 </s:Envelope>''';
 
-        final result = Service.unwrapArguments(validXml);
-        expect(result['CurrentVolume'], equals('42'));
-      }, timeout: Timeout(Duration(seconds: 5)));
+          final result = Service.unwrapArguments(validXml);
+          expect(result['CurrentVolume'], equals('42'));
+        },
+        timeout: Timeout(Duration(seconds: 5)),
+      );
     }, timeout: Timeout(Duration(seconds: 5)));
   });
 }

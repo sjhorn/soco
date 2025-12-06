@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - http_parser-4.1.2/lib/src/chunked_coding.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory http_parser-4.1.2/lib/src">http_parser-4.1.2/lib/src</a> - chunked_coding.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">33.3&nbsp;%</td>
+            <td class="headerCovTableEntry">3</td>
+            <td class="headerCovTableEntry">1</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-06 10:24:05</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : // Copyright (c) 2016, the Dart project authors.  Please see the AUTHORS file</span>
+<span id="L2"><span class="lineNum">       2</span>              : // for details. All rights reserved. Use of this source code is governed by a</span>
+<span id="L3"><span class="lineNum">       3</span>              : // BSD-style license that can be found in the LICENSE file.</span>
+<span id="L4"><span class="lineNum">       4</span>              : </span>
+<span id="L5"><span class="lineNum">       5</span>              : import 'dart:convert';</span>
+<span id="L6"><span class="lineNum">       6</span>              : </span>
+<span id="L7"><span class="lineNum">       7</span>              : import 'chunked_coding/decoder.dart';</span>
+<span id="L8"><span class="lineNum">       8</span>              : import 'chunked_coding/encoder.dart';</span>
+<span id="L9"><span class="lineNum">       9</span>              : </span>
+<span id="L10"><span class="lineNum">      10</span>              : export 'chunked_coding/decoder.dart' hide chunkedCodingDecoder;</span>
+<span id="L11"><span class="lineNum">      11</span>              : export 'chunked_coding/encoder.dart' hide chunkedCodingEncoder;</span>
+<span id="L12"><span class="lineNum">      12</span>              : </span>
+<span id="L13"><span class="lineNum">      13</span>              : /// The canonical instance of [ChunkedCodingCodec].</span>
+<span id="L14"><span class="lineNum">      14</span>              : const chunkedCoding = ChunkedCodingCodec._();</span>
+<span id="L15"><span class="lineNum">      15</span>              : </span>
+<span id="L16"><span class="lineNum">      16</span>              : /// A codec that encodes and decodes the [chunked transfer coding][].</span>
+<span id="L17"><span class="lineNum">      17</span>              : ///</span>
+<span id="L18"><span class="lineNum">      18</span>              : /// [chunked transfer coding]: https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1</span>
+<span id="L19"><span class="lineNum">      19</span>              : ///</span>
+<span id="L20"><span class="lineNum">      20</span>              : /// The [encoder] creates a *single* chunked message for each call to</span>
+<span id="L21"><span class="lineNum">      21</span>              : /// [ChunkedCodingEncoder.convert] or</span>
+<span id="L22"><span class="lineNum">      22</span>              : /// [ChunkedCodingEncoder.startChunkedConversion]. This means that it will</span>
+<span id="L23"><span class="lineNum">      23</span>              : /// always add an end-of-message footer once conversion has finished. It doesn't</span>
+<span id="L24"><span class="lineNum">      24</span>              : /// support generating chunk extensions or trailing headers.</span>
+<span id="L25"><span class="lineNum">      25</span>              : ///</span>
+<span id="L26"><span class="lineNum">      26</span>              : /// Similarly, the [decoder] decodes a *single* chunked message into a stream of</span>
+<span id="L27"><span class="lineNum">      27</span>              : /// byte arrays that must be concatenated to get the full list (like most Dart</span>
+<span id="L28"><span class="lineNum">      28</span>              : /// byte streams). It doesn't support decoding a stream that contains multiple</span>
+<span id="L29"><span class="lineNum">      29</span>              : /// chunked messages, nor does it support a stream that contains chunked data</span>
+<span id="L30"><span class="lineNum">      30</span>              : /// mixed with other types of data.</span>
+<span id="L31"><span class="lineNum">      31</span>              : ///</span>
+<span id="L32"><span class="lineNum">      32</span>              : /// Currently, [decoder] will fail to parse chunk extensions and trailing</span>
+<span id="L33"><span class="lineNum">      33</span>              : /// headers. It may be updated to silently ignore them in the future.</span>
+<span id="L34"><span class="lineNum">      34</span>              : class ChunkedCodingCodec extends Codec&lt;List&lt;int&gt;, List&lt;int&gt;&gt; {</span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L36"><span class="lineNum">      36</span>              :   ChunkedCodingEncoder get encoder =&gt; chunkedCodingEncoder;</span>
+<span id="L37"><span class="lineNum">      37</span>              : </span>
+<span id="L38"><span class="lineNum">      38</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L39"><span class="lineNum">      39</span>              :   ChunkedCodingDecoder get decoder =&gt; chunkedCodingDecoder;</span>
+<span id="L40"><span class="lineNum">      40</span>              : </span>
+<span id="L41"><span class="lineNum">      41</span> <span class="tlaGNC">          15 :   const ChunkedCodingCodec._();</span></span>
+<span id="L42"><span class="lineNum">      42</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

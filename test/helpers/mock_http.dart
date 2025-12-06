@@ -74,16 +74,15 @@ String soapFault({
   String? errorCode,
   String? errorDescription,
 }) {
-  final detail =
-      errorCode != null
-          ? '''
+  final detail = errorCode != null
+      ? '''
     <detail>
       <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
         <errorCode>$errorCode</errorCode>
         <errorDescription>${errorDescription ?? ''}</errorDescription>
       </UPnPError>
     </detail>'''
-          : '';
+      : '';
 
   return '''<?xml version="1.0"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
@@ -268,7 +267,10 @@ class WimpResponses {
     final count = tracks.length;
     total ??= count;
 
-    final trackXml = tracks.map((t) => '''
+    final trackXml = tracks
+        .map(
+          (t) =>
+              '''
       <mediaMetadata xmlns="$_msNs">
         <id>${t['id'] ?? 'trackid_123'}</id>
         <itemType>track</itemType>
@@ -283,7 +285,9 @@ class WimpResponses {
           <canPlay>${t['canPlay'] ?? 'true'}</canPlay>
         </trackMetadata>
       </mediaMetadata>
-    ''').join('\n');
+    ''',
+        )
+        .join('\n');
 
     return '''<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
@@ -309,7 +313,10 @@ class WimpResponses {
     final count = albums.length;
     total ??= count;
 
-    final albumXml = albums.map((a) => '''
+    final albumXml = albums
+        .map(
+          (a) =>
+              '''
       <mediaCollection xmlns="$_msNs">
         <id>${a['id'] ?? 'albumid_123'}</id>
         <itemType>album</itemType>
@@ -318,7 +325,9 @@ class WimpResponses {
         <artist>${a['artist'] ?? 'Unknown Artist'}</artist>
         <canPlay>${a['canPlay'] ?? 'true'}</canPlay>
       </mediaCollection>
-    ''').join('\n');
+    ''',
+        )
+        .join('\n');
 
     return '''<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
@@ -344,14 +353,19 @@ class WimpResponses {
     final count = artists.length;
     total ??= count;
 
-    final artistXml = artists.map((a) => '''
+    final artistXml = artists
+        .map(
+          (a) =>
+              '''
       <mediaCollection xmlns="$_msNs">
         <id>${a['id'] ?? 'artistid_123'}</id>
         <itemType>artist</itemType>
         <title>${a['title'] ?? 'Unknown Artist'}</title>
         <canPlay>${a['canPlay'] ?? 'false'}</canPlay>
       </mediaCollection>
-    ''').join('\n');
+    ''',
+        )
+        .join('\n');
 
     return '''<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
@@ -377,14 +391,19 @@ class WimpResponses {
     final count = collections.length;
     total ??= count;
 
-    final collectionXml = collections.map((c) => '''
+    final collectionXml = collections
+        .map(
+          (c) =>
+              '''
       <mediaCollection xmlns="$_msNs">
         <id>${c['id'] ?? 'collection_123'}</id>
         <itemType>${c['itemType'] ?? 'collection'}</itemType>
         <title>${c['title'] ?? 'Unknown Collection'}</title>
         <canPlay>${c['canPlay'] ?? 'false'}</canPlay>
       </mediaCollection>
-    ''').join('\n');
+    ''',
+        )
+        .join('\n');
 
     return '''<?xml version="1.0" encoding="UTF-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">

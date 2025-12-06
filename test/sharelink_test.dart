@@ -325,67 +325,87 @@ void main() {
       mockClient.close();
     });
 
-    test('adds Spotify track to queue successfully', () async {
-      mockClient = MockClient((request) async {
-        if (request.body.contains('AddURIToQueue')) {
-          expect(request.body, contains('EnqueuedURI'));
-          expect(request.body, contains('spotify%3atrack%3a6NmXV4o6bmp704aPGyTVVG'));
-          return http.Response(soapEnvelope('''
+    test(
+      'adds Spotify track to queue successfully',
+      () async {
+        mockClient = MockClient((request) async {
+          if (request.body.contains('AddURIToQueue')) {
+            expect(request.body, contains('EnqueuedURI'));
+            expect(
+              request.body,
+              contains('spotify%3atrack%3a6NmXV4o6bmp704aPGyTVVG'),
+            );
+            return http.Response(
+              soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>5</FirstTrackNumberEnqueued>
               <NumTracksAdded>1</NumTracksAdded>
               <NewQueueLength>10</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
-        }
-        return http.Response('Not Found', 404);
-      });
-      soco.httpClient = mockClient;
-      plugin = ShareLinkPlugin(soco);
+          '''),
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        soco.httpClient = mockClient;
+        plugin = ShareLinkPlugin(soco);
 
-      final position = await plugin.addShareLinkToQueue(
-        'spotify:track:6NmXV4o6bmp704aPGyTVVG',
-      );
-      expect(position, equals(5));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final position = await plugin.addShareLinkToQueue(
+          'spotify:track:6NmXV4o6bmp704aPGyTVVG',
+        );
+        expect(position, equals(5));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('adds Spotify album to queue with title', () async {
-      mockClient = MockClient((request) async {
-        if (request.body.contains('AddURIToQueue')) {
-          expect(request.body, contains('x-rincon-cpcontainer:1004206c'));
-          expect(request.body, contains('My Album Title'));
-          return http.Response(soapEnvelope('''
+    test(
+      'adds Spotify album to queue with title',
+      () async {
+        mockClient = MockClient((request) async {
+          if (request.body.contains('AddURIToQueue')) {
+            expect(request.body, contains('x-rincon-cpcontainer:1004206c'));
+            expect(request.body, contains('My Album Title'));
+            return http.Response(
+              soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>1</FirstTrackNumberEnqueued>
               <NumTracksAdded>12</NumTracksAdded>
               <NewQueueLength>12</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
-        }
-        return http.Response('Not Found', 404);
-      });
-      soco.httpClient = mockClient;
-      plugin = ShareLinkPlugin(soco);
+          '''),
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        soco.httpClient = mockClient;
+        plugin = ShareLinkPlugin(soco);
 
-      final position = await plugin.addShareLinkToQueue(
-        'spotify:album:6wiUBliPe76YAVpNEdidpY',
-        dcTitle: 'My Album Title',
-      );
-      expect(position, equals(1));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final position = await plugin.addShareLinkToQueue(
+          'spotify:album:6wiUBliPe76YAVpNEdidpY',
+          dcTitle: 'My Album Title',
+        );
+        expect(position, equals(1));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('adds TIDAL track to queue', () async {
       mockClient = MockClient((request) async {
         if (request.body.contains('AddURIToQueue')) {
           expect(request.body, contains('track%2f157273956'));
           expect(request.body, contains('SA_RINCON44551'));
-          return http.Response(soapEnvelope('''
+          return http.Response(
+            soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>3</FirstTrackNumberEnqueued>
               <NumTracksAdded>1</NumTracksAdded>
               <NewQueueLength>3</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
+          '''),
+            200,
+          );
         }
         return http.Response('Not Found', 404);
       });
@@ -403,18 +423,22 @@ void main() {
       mockClient = MockClient((request) async {
         if (request.body.contains('AddURIToQueue')) {
           // Extract DesiredFirstTrackNumberEnqueued from request
-          final match = RegExp(r'<DesiredFirstTrackNumberEnqueued>(\d+)</DesiredFirstTrackNumberEnqueued>')
-              .firstMatch(request.body);
+          final match = RegExp(
+            r'<DesiredFirstTrackNumberEnqueued>(\d+)</DesiredFirstTrackNumberEnqueued>',
+          ).firstMatch(request.body);
           if (match != null) {
             receivedPosition = int.parse(match.group(1)!);
           }
-          return http.Response(soapEnvelope('''
+          return http.Response(
+            soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>7</FirstTrackNumberEnqueued>
               <NumTracksAdded>1</NumTracksAdded>
               <NewQueueLength>10</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
+          '''),
+            200,
+          );
         }
         return http.Response('Not Found', 404);
       });
@@ -432,18 +456,22 @@ void main() {
       var receivedAsNext = '';
       mockClient = MockClient((request) async {
         if (request.body.contains('AddURIToQueue')) {
-          final match = RegExp(r'<EnqueueAsNext>(\d+)</EnqueueAsNext>')
-              .firstMatch(request.body);
+          final match = RegExp(
+            r'<EnqueueAsNext>(\d+)</EnqueueAsNext>',
+          ).firstMatch(request.body);
           if (match != null) {
             receivedAsNext = match.group(1)!;
           }
-          return http.Response(soapEnvelope('''
+          return http.Response(
+            soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>2</FirstTrackNumberEnqueued>
               <NumTracksAdded>1</NumTracksAdded>
               <NewQueueLength>5</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
+          '''),
+            200,
+          );
         }
         return http.Response('Not Found', 404);
       });
@@ -466,11 +494,13 @@ void main() {
 
       expect(
         () => plugin.addShareLinkToQueue('https://youtube.com/watch?v=123'),
-        throwsA(isA<SoCoException>().having(
-          (e) => e.message,
-          'message',
-          contains('Unsupported URI'),
-        )),
+        throwsA(
+          isA<SoCoException>().having(
+            (e) => e.message,
+            'message',
+            contains('Unsupported URI'),
+          ),
+        ),
       );
     }, timeout: Timeout(Duration(seconds: 5)));
 
@@ -482,16 +512,26 @@ void main() {
           callCount++;
           if (callCount == 1) {
             // First call (SpotifyShare) fails
-            return http.Response(soapFault(faultcode: 's:Client', faultstring: 'UPnPError', errorCode: '714'), 500);
+            return http.Response(
+              soapFault(
+                faultcode: 's:Client',
+                faultstring: 'UPnPError',
+                errorCode: '714',
+              ),
+              500,
+            );
           }
           // Second call (SpotifyUSShare) succeeds
-          return http.Response(soapEnvelope('''
+          return http.Response(
+            soapEnvelope('''
             <u:AddURIToQueueResponse xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
               <FirstTrackNumberEnqueued>1</FirstTrackNumberEnqueued>
               <NumTracksAdded>1</NumTracksAdded>
               <NewQueueLength>1</NewQueueLength>
             </u:AddURIToQueueResponse>
-          '''), 200);
+          '''),
+            200,
+          );
         }
         return http.Response('Not Found', 404);
       });

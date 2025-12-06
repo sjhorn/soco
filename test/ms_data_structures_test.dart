@@ -279,7 +279,9 @@ void main() {
     test('album_art_uri field', () {
       final track = MSTrack({'album_art_uri': 'http://example.com/art.jpg'});
       expect(
-          track.content['album_art_uri'], equals('http://example.com/art.jpg'));
+        track.content['album_art_uri'],
+        equals('http://example.com/art.jpg'),
+      );
     });
 
     test('mime_type field', () {
@@ -408,18 +410,12 @@ void main() {
     });
 
     test('throws when extended_id is missing', () {
-      final track = MSTrack({
-        'can_play': true,
-        'title': 'Song',
-      });
+      final track = MSTrack({'can_play': true, 'title': 'Song'});
       expect(() => track.didlMetadata, throwsA(isA<DIDLMetadataError>()));
     });
 
     test('throws when title is missing', () {
-      final track = MSTrack({
-        'can_play': true,
-        'extended_id': 'ext123',
-      });
+      final track = MSTrack({'can_play': true, 'extended_id': 'ext123'});
       expect(() => track.didlMetadata, throwsA(isA<DIDLMetadataError>()));
     });
 

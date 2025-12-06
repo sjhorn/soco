@@ -161,7 +161,10 @@ void main() {
       expect(alarm.duration, equals(duration));
       expect(alarm.recurrence, equals('WEEKDAYS'));
       expect(alarm.enabled, isFalse);
-      expect(alarm.programUri, equals('x-rincon-playlist:RINCON_123#A:ALBUM/Test'));
+      expect(
+        alarm.programUri,
+        equals('x-rincon-playlist:RINCON_123#A:ALBUM/Test'),
+      );
       expect(alarm.programMetadata, equals('Test metadata'));
       expect(alarm.playMode, equals('SHUFFLE'));
       expect(alarm.volume, equals(50));
@@ -208,10 +211,7 @@ void main() {
     });
 
     test('toString formats correctly', () {
-      final alarm = Alarm(
-        zone,
-        startTime: DateTime(0, 1, 1, 7, 30, 15),
-      );
+      final alarm = Alarm(zone, startTime: DateTime(0, 1, 1, 7, 30, 15));
       expect(alarm.toString(), equals('<Alarm id:null@07:30:15>'));
     });
 
@@ -432,57 +432,70 @@ void main() {
       mockClient.close();
     });
 
-    test('save creates new alarm and returns ID', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            expect(request.body, contains('<StartLocalTime>08:30:00</StartLocalTime>'));
-            expect(request.body, contains('<Duration>00:15:00</Duration>'));
-            expect(request.body, contains('<Recurrence>WEEKDAYS</Recurrence>'));
-            expect(request.body, contains('<Enabled>1</Enabled>'));
-            expect(request.body, contains('<PlayMode>SHUFFLE</PlayMode>'));
-            expect(request.body, contains('<Volume>35</Volume>'));
-            expect(request.body, contains('<IncludeLinkedZones>1</IncludeLinkedZones>'));
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save creates new alarm and returns ID',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              expect(
+                request.body,
+                contains('<StartLocalTime>08:30:00</StartLocalTime>'),
+              );
+              expect(request.body, contains('<Duration>00:15:00</Duration>'));
+              expect(
+                request.body,
+                contains('<Recurrence>WEEKDAYS</Recurrence>'),
+              );
+              expect(request.body, contains('<Enabled>1</Enabled>'));
+              expect(request.body, contains('<PlayMode>SHUFFLE</PlayMode>'));
+              expect(request.body, contains('<Volume>35</Volume>'));
+              expect(
+                request.body,
+                contains('<IncludeLinkedZones>1</IncludeLinkedZones>'),
+              );
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>456</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarm = Alarm(
-        zone,
-        startTime: DateTime(0, 1, 1, 8, 30, 0),
-        duration: DateTime(0, 1, 1, 0, 15, 0),
-        recurrence: 'WEEKDAYS',
-        playMode: 'SHUFFLE',
-        volume: 35,
-        includeLinkedZones: true,
-      );
+        final alarm = Alarm(
+          zone,
+          startTime: DateTime(0, 1, 1, 8, 30, 0),
+          duration: DateTime(0, 1, 1, 0, 15, 0),
+          recurrence: 'WEEKDAYS',
+          playMode: 'SHUFFLE',
+          volume: 35,
+          includeLinkedZones: true,
+        );
 
-      final alarmId = await alarm.save();
-      expect(alarmId, equals('456'));
-      expect(alarm.alarmId, equals('456'));
-      expect(Alarms().alarms.containsKey('456'), isTrue);
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final alarmId = await alarm.save();
+        expect(alarmId, equals('456'));
+        expect(alarm.alarmId, equals('456'));
+        expect(Alarms().alarms.containsKey('456'), isTrue);
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
     test('save updates existing alarm', () async {
       var updateCalled = false;
@@ -492,7 +505,10 @@ void main() {
           if (request.body.contains('UpdateAlarm')) {
             updateCalled = true;
             expect(request.body, contains('<ID>existing123</ID>'));
-            expect(request.body, contains('<StartLocalTime>09:00:00</StartLocalTime>'));
+            expect(
+              request.body,
+              contains('<StartLocalTime>09:00:00</StartLocalTime>'),
+            );
             return http.Response(
               soapEnvelope('''
                 <u:UpdateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
@@ -516,10 +532,7 @@ void main() {
       });
       zone.httpClient = mockClient;
 
-      final alarm = Alarm(
-        zone,
-        startTime: DateTime(0, 1, 1, 9, 0, 0),
-      );
+      final alarm = Alarm(zone, startTime: DateTime(0, 1, 1, 9, 0, 0));
       alarm.alarmIdForTesting = 'existing123';
 
       await alarm.save();
@@ -527,183 +540,209 @@ void main() {
       expect(alarm.alarmId, equals('existing123'));
     }, timeout: Timeout(Duration(seconds: 5)));
 
-    test('save with null duration sends empty duration', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            expect(request.body, contains('<Duration></Duration>'));
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save with null duration sends empty duration',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              expect(request.body, contains('<Duration></Duration>'));
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>789</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarm = Alarm(zone, duration: null);
-      await alarm.save();
-      expect(alarm.alarmId, equals('789'));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final alarm = Alarm(zone, duration: null);
+        await alarm.save();
+        expect(alarm.alarmId, equals('789'));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('save with null programUri sends buzzer URI', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            expect(request.body, contains('<ProgramURI>x-rincon-buzzer:0</ProgramURI>'));
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save with null programUri sends buzzer URI',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              expect(
+                request.body,
+                contains('<ProgramURI>x-rincon-buzzer:0</ProgramURI>'),
+              );
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>111</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarm = Alarm(zone, programUri: null);
-      await alarm.save();
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final alarm = Alarm(zone, programUri: null);
+        await alarm.save();
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('save with custom programUri sends that URI', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            expect(request.body, contains('<ProgramURI>x-rincon-playlist:123</ProgramURI>'));
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save with custom programUri sends that URI',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              expect(
+                request.body,
+                contains('<ProgramURI>x-rincon-playlist:123</ProgramURI>'),
+              );
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>222</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarm = Alarm(zone, programUri: 'x-rincon-playlist:123');
-      await alarm.save();
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final alarm = Alarm(zone, programUri: 'x-rincon-playlist:123');
+        await alarm.save();
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('save updates lastAlarmListVersion when sequential', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save updates lastAlarmListVersion when sequential',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>6</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarms = Alarms();
-      alarms.lastAlarmListVersion = 'RINCON_TEST:5';
-      expect(alarms.lastId, equals(5));
+        final alarms = Alarms();
+        alarms.lastAlarmListVersion = 'RINCON_TEST:5';
+        expect(alarms.lastId, equals(5));
 
-      final alarm = Alarm(zone);
-      await alarm.save();
+        final alarm = Alarm(zone);
+        await alarm.save();
 
-      // When the new ID (6) is exactly lastId + 1, the version is updated
-      expect(alarms.lastId, equals(6));
-      expect(alarms.lastAlarmListVersion, equals('RINCON_TEST:6'));
-    }, timeout: Timeout(Duration(seconds: 5)));
+        // When the new ID (6) is exactly lastId + 1, the version is updated
+        expect(alarms.lastId, equals(6));
+        expect(alarms.lastAlarmListVersion, equals('RINCON_TEST:6'));
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
 
-    test('save with disabled alarm sends Enabled=0', () async {
-      mockClient = MockClient((request) async {
-        final url = request.url.toString();
-        if (url.contains('AlarmClock')) {
-          if (request.body.contains('CreateAlarm')) {
-            expect(request.body, contains('<Enabled>0</Enabled>'));
-            return http.Response(
-              soapEnvelope('''
+    test(
+      'save with disabled alarm sends Enabled=0',
+      () async {
+        mockClient = MockClient((request) async {
+          final url = request.url.toString();
+          if (url.contains('AlarmClock')) {
+            if (request.body.contains('CreateAlarm')) {
+              expect(request.body, contains('<Enabled>0</Enabled>'));
+              return http.Response(
+                soapEnvelope('''
                 <u:CreateAlarmResponse xmlns:u="urn:schemas-upnp-org:service:AlarmClock:1">
                   <AssignedID>333</AssignedID>
                 </u:CreateAlarmResponse>
               '''),
-              200,
-            );
+                200,
+              );
+            }
           }
-        }
-        if (url.contains('ZoneGroupTopology')) {
-          return http.Response(
-            soapEnvelope('''
+          if (url.contains('ZoneGroupTopology')) {
+            return http.Response(
+              soapEnvelope('''
               <u:GetZoneGroupStateResponse xmlns:u="urn:schemas-upnp-org:service:ZoneGroupTopology:1">
                 <ZoneGroupState>${_escapeXml(zoneGroupStateForIp('192.168.102.1'))}</ZoneGroupState>
               </u:GetZoneGroupStateResponse>
             '''),
-            200,
-          );
-        }
-        return http.Response('Not Found', 404);
-      });
-      zone.httpClient = mockClient;
+              200,
+            );
+          }
+          return http.Response('Not Found', 404);
+        });
+        zone.httpClient = mockClient;
 
-      final alarm = Alarm(zone, enabled: false);
-      await alarm.save();
-    }, timeout: Timeout(Duration(seconds: 5)));
+        final alarm = Alarm(zone, enabled: false);
+        await alarm.save();
+      },
+      timeout: Timeout(Duration(seconds: 5)),
+    );
   });
 
   group('Alarms.update with mocked HTTP', () {
@@ -901,7 +940,10 @@ void main() {
       await alarms.update(zone);
 
       final alarm = alarms['103']!;
-      expect(alarm.programUri, equals('x-rincon-playlist:RINCON_123#A:PLAYLIST/MyMusic'));
+      expect(
+        alarm.programUri,
+        equals('x-rincon-playlist:RINCON_123#A:PLAYLIST/MyMusic'),
+      );
     });
 
     test('update skips when alarm list version not increased', () async {
@@ -1090,10 +1132,7 @@ void main() {
     });
 
     test('update handles disabled alarm', () async {
-      final alarmListXml = createAlarmListXml(
-        alarmId: '108',
-        enabled: '0',
-      );
+      final alarmListXml = createAlarmListXml(alarmId: '108', enabled: '0');
 
       mockClient = MockClient((request) async {
         final url = request.url.toString();
@@ -1202,7 +1241,10 @@ void main() {
     test('removeAlarmById returns true when alarm found and removed', () async {
       // Use unique UUID to avoid conflicts with other tests running in parallel
       const uniqueUuid = 'RINCON_REMOVE_TEST_001';
-      final alarmListXml = createAlarmListXml(alarmId: '300', roomUuid: uniqueUuid);
+      final alarmListXml = createAlarmListXml(
+        alarmId: '300',
+        roomUuid: uniqueUuid,
+      );
 
       mockClient = MockClient((request) async {
         final url = request.url.toString();
@@ -1251,7 +1293,10 @@ void main() {
     test('removeAlarmById returns false when alarm not found', () async {
       // Use unique UUID to avoid conflicts with other tests running in parallel
       const uniqueUuid = 'RINCON_REMOVE_TEST_002';
-      final alarmListXml = createAlarmListXml(alarmId: '301', roomUuid: uniqueUuid);
+      final alarmListXml = createAlarmListXml(
+        alarmId: '301',
+        roomUuid: uniqueUuid,
+      );
 
       mockClient = MockClient((request) async {
         final url = request.url.toString();

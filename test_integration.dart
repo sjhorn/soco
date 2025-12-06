@@ -236,7 +236,9 @@ Future<void> main() async {
   try {
     final library = device.musicLibrary;
     final result = await library.getArtists(maxItems: 5);
-    print('Artists in library: ${result.numberReturned} returned, ${result.totalMatches} total');
+    print(
+      'Artists in library: ${result.numberReturned} returned, ${result.totalMatches} total',
+    );
     for (final artist in result.items) {
       print('  - ${artist.title}');
     }

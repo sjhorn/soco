@@ -199,10 +199,12 @@ void main() {
       // Use actual control characters that will cause parse failure
       // We need to create a string with actual null bytes and control chars
       final xmlWithControlChar = String.fromCharCodes([
-        ...'<?xml version="1.0"?>\n<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"\n           xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"\n           xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">\n  <item id="test'.codeUnits,
+        ...'<?xml version="1.0"?>\n<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"\n           xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"\n           xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">\n  <item id="test'
+            .codeUnits,
         0x00, // Null byte - illegal in XML
         0x01, // SOH - illegal in XML
-        ...'id" parentID="-1" restricted="true">\n    <dc:title>Test</dc:title>\n    <upnp:class>object.item.audioItem.musicTrack</upnp:class>\n  </item>\n</DIDL-Lite>'.codeUnits,
+        ...'id" parentID="-1" restricted="true">\n    <dc:title>Test</dc:title>\n    <upnp:class>object.item.audioItem.musicTrack</upnp:class>\n  </item>\n</DIDL-Lite>'
+            .codeUnits,
       ]);
 
       // This should trigger the catch block (line 54) and clean the XML (lines 57-58)
@@ -230,7 +232,7 @@ void main() {
       try {
         // Clear cache to ensure we hit the parsing path
         clearFromDidlStringCache();
-        
+
         final xmlString = dataLoader.loadXml('track.xml');
         fromDidlString(xmlString);
 
@@ -245,11 +247,11 @@ void main() {
           isTrue,
           reason: 'Expected log message containing "Created data structures"',
         );
-        
+
         // Verify the log message format (lines 88-89 create the preview strings)
-        final logMessage = logRecords.firstWhere(
-          (r) => r.message.contains('Created data structures'),
-        ).message;
+        final logMessage = logRecords
+            .firstWhere((r) => r.message.contains('Created data structures'))
+            .message;
         expect(logMessage, contains('from Didl string'));
       } finally {
         // Restore original log level

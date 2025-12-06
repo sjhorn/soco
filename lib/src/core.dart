@@ -1151,7 +1151,7 @@ class SoCo {
     track['position'] = response['RelTime'] ?? '0:00:00';
 
     final metadata = response['TrackMetaData'];
-    
+
     // Store the entire Metadata entry in the track, this can then be
     // used if needed by the client to restart a given URI
     track['metadata'] = metadata;
@@ -1161,12 +1161,12 @@ class SoCo {
       if (title == null || title.isEmpty) {
         return false;
       }
-      
+
       final musicSource = musicSourceFromUri(track['uri'] as String);
       if (musicSource == 'LIBRARY') {
         return false;
       }
-      
+
       final uri = track['uri'] as String;
       final decodedUri = Uri.decodeComponent(uri);
       return title.contains(uri) || title.contains(decodedUri);
@@ -1175,16 +1175,15 @@ class SoCo {
     // Helper function to parse radio metadata
     Map<String, String> parseRadioMetadata(XmlElement metadataElement) {
       final radioTrack = <String, String>{};
-      
+
       // Find streamContent element
       final streamContentEl = metadataElement
-          .findElements('streamContent',
-              namespace: soco_xml.namespaces['r'])
+          .findElements('streamContent', namespace: soco_xml.namespaces['r'])
           .firstOrNull;
       final trackinfo = streamContentEl?.innerText ?? '';
-      
+
       final index = trackinfo.indexOf(' - ');
-      
+
       if (trackinfo.contains('TYPE=SNG|')) {
         // Examples from services:
         //  Apple Music radio:
@@ -1200,7 +1199,7 @@ class SoCo {
             tags[key] = value;
           }
         }
-        
+
         if (tags.containsKey('TITLE')) {
           radioTrack['title'] = tags['TITLE']!;
         }
@@ -1216,11 +1215,10 @@ class SoCo {
       } else {
         // Might find some kind of title anyway in metadata
         final titleEl = metadataElement
-            .findElements('title',
-                namespace: soco_xml.namespaces['dc'])
+            .findElements('title', namespace: soco_xml.namespaces['dc'])
             .firstOrNull;
         final title = titleEl?.innerText ?? '';
-        
+
         // Avoid using URIs as the title
         if (titleInUri(title)) {
           radioTrack['title'] = trackinfo;
@@ -1228,15 +1226,13 @@ class SoCo {
           radioTrack['title'] = title;
         }
       }
-      
+
       return radioTrack;
     }
 
     // If the speaker is playing from the line-in source, querying for track
     // metadata will return "NOT_IMPLEMENTED".
-    if (metadata == null ||
-        metadata.isEmpty ||
-        metadata == 'NOT_IMPLEMENTED') {
+    if (metadata == null || metadata.isEmpty || metadata == 'NOT_IMPLEMENTED') {
       return track;
     }
 
@@ -1251,12 +1247,9 @@ class SoCo {
       return track;
     }
 
-    final metadataElement = metadataDoc.rootElement
-        .findElements('item')
-        .firstOrNull ??
-        metadataDoc.rootElement
-            .findElements('container')
-            .firstOrNull ??
+    final metadataElement =
+        metadataDoc.rootElement.findElements('item').firstOrNull ??
+        metadataDoc.rootElement.findElements('container').firstOrNull ??
         metadataDoc.rootElement;
 
     // Duration seems to be '0:00:00' when listening to radio
@@ -1272,24 +1265,21 @@ class SoCo {
     if (track['artist'] == null || (track['artist'] as String).isEmpty) {
       // Track metadata is returned in DIDL-Lite format
       final mdTitleEl = metadataElement
-          .findElements('title',
-              namespace: soco_xml.namespaces['dc'])
+          .findElements('title', namespace: soco_xml.namespaces['dc'])
           .firstOrNull;
       var mdTitle = mdTitleEl?.innerText ?? '';
-      
+
       if (titleInUri(mdTitle)) {
         mdTitle = '';
       }
-      
+
       final mdArtistEl = metadataElement
-          .findElements('creator',
-              namespace: soco_xml.namespaces['dc'])
+          .findElements('creator', namespace: soco_xml.namespaces['dc'])
           .firstOrNull;
       final mdArtist = mdArtistEl?.innerText ?? '';
-      
+
       final mdAlbumEl = metadataElement
-          .findElements('album',
-              namespace: soco_xml.namespaces['upnp'])
+          .findElements('album', namespace: soco_xml.namespaces['upnp'])
           .firstOrNull;
       final mdAlbum = mdAlbumEl?.innerText ?? '';
 
@@ -1305,8 +1295,7 @@ class SoCo {
           : (mdAlbum.isNotEmpty ? mdAlbum : '');
 
       final albumArtEl = metadataElement
-          .findElements('albumArtURI',
-              namespace: soco_xml.namespaces['upnp'])
+          .findElements('albumArtURI', namespace: soco_xml.namespaces['upnp'])
           .firstOrNull;
       final albumArtUrl = albumArtEl?.innerText;
       if (albumArtUrl != null && albumArtUrl.isNotEmpty) {
@@ -1335,21 +1324,19 @@ class SoCo {
     media['uri'] = response['CurrentURI'] ?? '';
 
     final metadata = response['CurrentURIMetaData'];
-    if (metadata != null && metadata.isNotEmpty && metadata != 'NOT_IMPLEMENTED') {
+    if (metadata != null &&
+        metadata.isNotEmpty &&
+        metadata != 'NOT_IMPLEMENTED') {
       try {
         final metadataDoc = XmlDocument.parse(metadata);
-        final metadataElement = metadataDoc.rootElement
-            .findElements('item')
-            .firstOrNull ??
-            metadataDoc.rootElement
-                .findElements('container')
-                .firstOrNull ??
+        final metadataElement =
+            metadataDoc.rootElement.findElements('item').firstOrNull ??
+            metadataDoc.rootElement.findElements('container').firstOrNull ??
             metadataDoc.rootElement;
-        
+
         // Extract channel title from DIDL metadata
         final titleEl = metadataElement
-            .findElements('title',
-                namespace: soco_xml.namespaces['dc'])
+            .findElements('title', namespace: soco_xml.namespaces['dc'])
             .firstOrNull;
         final channelTitle = titleEl?.innerText ?? '';
         if (channelTitle.isNotEmpty) {
@@ -1540,7 +1527,7 @@ class SoCo {
         ],
       );
     } on SoCoUPnPException catch (err) {
-      if (err.toString().contains('Error 402 received')) {
+      if (err.errorCode == '402') {
         throw ArgumentError(
           'invalid sleep_time_seconds, must be integer value between 0 and 86399 inclusive or null',
         );
@@ -1709,7 +1696,7 @@ class SoCo {
         if (fullAlbumArtUri) {
           musicLibrary.updateAlbumArtToFullUri(item);
         }
-        
+
         queue.add(item);
       }
     }
@@ -2516,22 +2503,23 @@ class SoCo {
   ///     service is not configured
   Future<bool?> get micEnabled async {
     await zoneGroupState.poll(this);
-    
+
     // Check voice service configured first (without polling again)
     final voiceConfigState = speakerInfo['_voiceConfigState'];
-    final isVoiceConfigured = voiceConfigState != null &&
+    final isVoiceConfigured =
+        voiceConfigState != null &&
         int.tryParse(voiceConfigState.toString()) != 0;
-    
+
     // Return null if voice service is not configured
     if (!isVoiceConfigured) {
       return null;
     }
-    
+
     final micEnabledValue = speakerInfo['_micEnabled'];
     if (micEnabledValue == null) {
       return null;
     }
-    
+
     // MicEnabled values: 0 = disabled, 1 = enabled
     return int.tryParse(micEnabledValue.toString()) == 1;
   }
@@ -2976,11 +2964,7 @@ class SoCo {
     }
 
     final length = int.parse(lastResponse['NewQueueLength'] ?? '0');
-    return {
-      'change': change,
-      'update_id': updateId,
-      'length': length,
-    };
+    return {'change': change, 'update_id': updateId, 'length': length};
   }
 
   /// Clear all tracks from a Sonos playlist.
@@ -3009,18 +2993,9 @@ class SoCo {
     final tracks = List.generate(count, (i) => i.toString()).join(',');
 
     if (tracks.isNotEmpty) {
-      return reorderSonosPlaylist(
-        playlist,
-        tracks,
-        '',
-        updateId: updateId,
-      );
+      return reorderSonosPlaylist(playlist, tracks, '', updateId: updateId);
     } else {
-      return {
-        'change': 0,
-        'update_id': updateId,
-        'length': count,
-      };
+      return {'change': 0, 'update_id': updateId, 'length': count};
     }
   }
 
@@ -3066,12 +3041,7 @@ class SoCo {
     int track, {
     int updateId = 0,
   }) {
-    return reorderSonosPlaylist(
-      sonosPlaylist,
-      track,
-      null,
-      updateId: updateId,
-    );
+    return reorderSonosPlaylist(sonosPlaylist, track, null, updateId: updateId);
   }
 
   /// Convert a Map representation from fromDidlString to a DidlPlaylistContainer.
@@ -3080,25 +3050,24 @@ class SoCo {
   /// implementation that returns Maps instead of DidlObject instances.
   DidlPlaylistContainer _mapToPlaylistContainer(Map<String, dynamic> itemMap) {
     final element = itemMap['element'] as XmlElement;
-    
+
     // Extract title from dc:title element
     final titleEl = element
-        .findElements('title',
-            namespace: 'http://purl.org/dc/elements/1.1/')
+        .findElements('title', namespace: 'http://purl.org/dc/elements/1.1/')
         .firstOrNull;
     final title = titleEl?.innerText ?? '';
-    
+
     // Extract ID and parentID from attributes
     final id = element.getAttribute('id') ?? '';
     final parentId = element.getAttribute('parentID') ?? 'SQ:';
     final restricted = element.getAttribute('restricted') == 'true';
-    
+
     // Extract resource information
     final resEl = element.findElements('res').firstOrNull;
     final uri = resEl?.innerText ?? '';
     final protocolInfo =
         resEl?.getAttribute('protocolInfo') ?? 'x-rincon-playlist:*:*:*';
-    
+
     return DidlPlaylistContainer(
       title: title,
       parentId: parentId,
@@ -3137,21 +3106,21 @@ class SoCo {
         'Failed to get playlists. This may be due to a type mismatch in music library.',
       );
     }
-    
+
     // Handle both DidlObject and Map representations
     // The items list may contain Maps at runtime even though it's typed as List<DidlObject>
     final items = playlists.items as dynamic;
     for (final item in items) {
       String? value;
       DidlPlaylistContainer? playlist;
-      
+
       if (item is DidlPlaylistContainer) {
         playlist = item;
         value = attrName == 'title'
             ? item.title
             : attrName == 'item_id'
-                ? item.itemId
-                : null;
+            ? item.itemId
+            : null;
       } else if (item is Map) {
         // Handle Map representation from fromDidlString
         final itemMap = item as Map<String, dynamic>;
@@ -3160,17 +3129,18 @@ class SoCo {
           value = attrName == 'title'
               ? playlist.title
               : attrName == 'item_id'
-                  ? playlist.itemId
-                  : null;
+              ? playlist.itemId
+              : null;
         }
       }
-      
+
       if (value == match && playlist != null) {
         return playlist;
       }
     }
     throw SoCoException('No Sonos playlist found with $attrName="$match"');
   }
+
   // - getFavoriteRadioShows()
   // - getFavoriteRadioStations()
   // - getSonosFavorites()

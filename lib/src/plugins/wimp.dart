@@ -45,10 +45,7 @@ const _soapAction = {
 };
 
 /// Exception string to code mapping
-const _exceptionStrToCode = {
-  'unknown': 20000,
-  'ItemNotFound': 20001,
-};
+const _exceptionStrToCode = {'unknown': 20000, 'ItemNotFound': 20001};
 
 /// Search prefix format
 const _searchPrefix = '00020064{searchType}:{search}';
@@ -66,9 +63,7 @@ final _idPrefix = <Type, String?>{
 };
 
 /// MIME type to extension mapping
-const _mimeTypeToExtension = {
-  'audio/aac': 'mp4',
-};
+const _mimeTypeToExtension = {'audio/aac': 'mp4'};
 
 /// URI templates for each item type
 final _uris = <Type, String?>{
@@ -124,11 +119,7 @@ Future<http.Response> _post(
     while (response == null) {
       try {
         response = await httpClient
-            .post(
-              Uri.parse(url),
-              headers: headers,
-              body: body,
-            )
+            .post(Uri.parse(url), headers: headers, body: body)
             .timeout(Duration(milliseconds: (timeout * 1000).toInt()));
       } on Exception {
         // Handle TimeoutException, SocketException, etc.
@@ -200,11 +191,11 @@ class WimpPlugin extends SoCoPlugin {
     int retries = 3,
     double timeout = 3.0,
     http.Client? httpClient,
-  })  : _retries = retries,
-        _timeout = timeout,
-        _httpClient = httpClient,
-        _sessionId = '',
-        _serialNumber = '';
+  }) : _retries = retries,
+       _timeout = timeout,
+       _httpClient = httpClient,
+       _sessionId = '',
+       _serialNumber = '';
 
   /// Create a WimpPlugin for testing with pre-set initialization values.
   ///
@@ -217,14 +208,14 @@ class WimpPlugin extends SoCoPlugin {
     int retries = 3,
     double timeout = 3.0,
     http.Client? httpClient,
-  })  : _username = username,
-        _retries = retries,
-        _timeout = timeout,
-        _httpClient = httpClient,
-        _sessionId = sessionId,
-        _serialNumber = serialNumber,
-        _initialized = true,
-        super(null);
+  }) : _username = username,
+       _retries = retries,
+       _timeout = timeout,
+       _httpClient = httpClient,
+       _sessionId = sessionId,
+       _serialNumber = serialNumber,
+       _initialized = true,
+       super(null);
 
   /// Initialize the plugin by getting speaker info and session ID.
   Future<void> _ensureInitialized() async {
@@ -236,10 +227,7 @@ class WimpPlugin extends SoCoPlugin {
     final musicServices = MusicServices(soco as SoCo);
     final response = await musicServices.sendCommand(
       'GetSessionId',
-      args: [
-        const MapEntry('ServiceId', 20),
-        MapEntry('Username', _username),
-      ],
+      args: [const MapEntry('ServiceId', 20), MapEntry('Username', _username)],
     );
     _sessionId = response['SessionId'] as String;
     _initialized = true;
@@ -265,8 +253,12 @@ class WimpPlugin extends SoCoPlugin {
     int start = 0,
     int maxItems = 100,
   }) {
-    return getMusicServiceInformation('tracks', search,
-        start: start, maxItems: maxItems);
+    return getMusicServiceInformation(
+      'tracks',
+      search,
+      start: start,
+      maxItems: maxItems,
+    );
   }
 
   /// Search for albums.
@@ -277,8 +269,12 @@ class WimpPlugin extends SoCoPlugin {
     int start = 0,
     int maxItems = 100,
   }) {
-    return getMusicServiceInformation('albums', search,
-        start: start, maxItems: maxItems);
+    return getMusicServiceInformation(
+      'albums',
+      search,
+      start: start,
+      maxItems: maxItems,
+    );
   }
 
   /// Search for artists.
@@ -289,8 +285,12 @@ class WimpPlugin extends SoCoPlugin {
     int start = 0,
     int maxItems = 100,
   }) {
-    return getMusicServiceInformation('artists', search,
-        start: start, maxItems: maxItems);
+    return getMusicServiceInformation(
+      'artists',
+      search,
+      start: start,
+      maxItems: maxItems,
+    );
   }
 
   /// Search for playlists.
@@ -305,8 +305,12 @@ class WimpPlugin extends SoCoPlugin {
     int start = 0,
     int maxItems = 100,
   }) {
-    return getMusicServiceInformation('playlists', search,
-        start: start, maxItems: maxItems);
+    return getMusicServiceInformation(
+      'playlists',
+      search,
+      start: start,
+      maxItems: maxItems,
+    );
   }
 
   /// Search for music service information items.
@@ -366,12 +370,14 @@ class WimpPlugin extends SoCoPlugin {
       out[element] = found.isNotEmpty ? found.first.innerText : null;
     }
 
-    final itemName =
-        searchTypeTransformed == 'tracksearch' ? 'mediaMetadata' : 'mediaCollection';
+    final itemName = searchTypeTransformed == 'tracksearch'
+        ? 'mediaMetadata'
+        : 'mediaCollection';
 
     for (final element in searchResult.findElements(itemName)) {
-      (out['item_list'] as List<MusicServiceItem>)
-          .add(getMsItem(element, this, parentId));
+      (out['item_list'] as List<MusicServiceItem>).add(
+        getMsItem(element, this, parentId),
+      );
     }
 
     return out;
@@ -445,8 +451,9 @@ class WimpPlugin extends SoCoPlugin {
     for (final result in metadataResult.childElements) {
       if (result.name.local == 'mediaCollection' ||
           result.name.local == 'mediaMetadata') {
-        (out['item_list'] as List<MusicServiceItem>)
-            .add(getMsItem(result, this, parentId));
+        (out['item_list'] as List<MusicServiceItem>).add(
+          getMsItem(result, this, parentId),
+        );
       }
     }
 
@@ -487,34 +494,43 @@ class WimpPlugin extends SoCoPlugin {
           .replaceAll('{extension}', extension ?? '')
           .replaceAll('{item_id}', itemContent['item_id']?.toString() ?? '')
           .replaceAll(
-              '{service_id}', itemContent['service_id']?.toString() ?? '')
+            '{service_id}',
+            itemContent['service_id']?.toString() ?? '',
+          )
           .replaceAll(
-              '{extended_id}', itemContent['extended_id']?.toString() ?? '');
+            '{extended_id}',
+            itemContent['extended_id']?.toString() ?? '',
+          );
     }
     return null;
   }
 
   /// Return the search XML body.
   String _searchBody(
-      String searchType, String searchTerm, int start, int maxItems) {
+    String searchType,
+    String searchTerm,
+    int start,
+    int maxItems,
+  ) {
     final xml = _baseBody();
 
     // Add the Body part
     final body = XmlElement(XmlName('s:Body'));
     xml.children.add(body);
 
-    final search = XmlElement(
-      XmlName('search'),
-      [XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1')],
-    );
+    final search = XmlElement(XmlName('search'), [
+      XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1'),
+    ]);
     body.children.add(search);
 
     search.children.add(XmlElement(XmlName('id'), [], [XmlText(searchType)]));
     search.children.add(XmlElement(XmlName('term'), [], [XmlText(searchTerm)]));
-    search.children
-        .add(XmlElement(XmlName('index'), [], [XmlText(start.toString())]));
-    search.children
-        .add(XmlElement(XmlName('count'), [], [XmlText(maxItems.toString())]));
+    search.children.add(
+      XmlElement(XmlName('index'), [], [XmlText(start.toString())]),
+    );
+    search.children.add(
+      XmlElement(XmlName('count'), [], [XmlText(maxItems.toString())]),
+    );
 
     return xml.toXmlString();
   }
@@ -527,47 +543,49 @@ class WimpPlugin extends SoCoPlugin {
     final body = XmlElement(XmlName('s:Body'));
     xml.children.add(body);
 
-    final getMetadata = XmlElement(
-      XmlName('getMetadata'),
-      [XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1')],
-    );
+    final getMetadata = XmlElement(XmlName('getMetadata'), [
+      XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1'),
+    ]);
     body.children.add(getMetadata);
 
-    getMetadata.children
-        .add(XmlElement(XmlName('id'), [], [XmlText(searchId)]));
+    getMetadata.children.add(
+      XmlElement(XmlName('id'), [], [XmlText(searchId)]),
+    );
     getMetadata.children.add(XmlElement(XmlName('index'), [], [XmlText('0')]));
-    getMetadata.children
-        .add(XmlElement(XmlName('count'), [], [XmlText('100')]));
+    getMetadata.children.add(
+      XmlElement(XmlName('count'), [], [XmlText('100')]),
+    );
 
     return xml.toXmlString();
   }
 
   /// Return the base XML body (envelope with header).
   XmlElement _baseBody() {
-    final envelope = XmlElement(
-      XmlName('s:Envelope'),
-      [
-        XmlAttribute(
-            XmlName('xmlns:s'), 'http://schemas.xmlsoap.org/soap/envelope/'),
-      ],
-    );
+    final envelope = XmlElement(XmlName('s:Envelope'), [
+      XmlAttribute(
+        XmlName('xmlns:s'),
+        'http://schemas.xmlsoap.org/soap/envelope/',
+      ),
+    ]);
 
     // Add the Header part
     final header = XmlElement(XmlName('s:Header'));
     envelope.children.add(header);
 
-    final credentials = XmlElement(
-      XmlName('credentials'),
-      [XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1')],
-    );
+    final credentials = XmlElement(XmlName('credentials'), [
+      XmlAttribute(XmlName('xmlns'), 'http://www.sonos.com/Services/1.1'),
+    ]);
     header.children.add(credentials);
 
-    credentials.children
-        .add(XmlElement(XmlName('sessionId'), [], [XmlText(_sessionId)]));
-    credentials.children
-        .add(XmlElement(XmlName('deviceId'), [], [XmlText(_serialNumber)]));
-    credentials.children
-        .add(XmlElement(XmlName('deviceProvider'), [], [XmlText('Sonos')]));
+    credentials.children.add(
+      XmlElement(XmlName('sessionId'), [], [XmlText(_sessionId)]),
+    );
+    credentials.children.add(
+      XmlElement(XmlName('deviceId'), [], [XmlText(_serialNumber)]),
+    );
+    credentials.children.add(
+      XmlElement(XmlName('deviceProvider'), [], [XmlText('Sonos')]),
+    );
 
     return envelope;
   }
@@ -579,10 +597,13 @@ class WimpPlugin extends SoCoPlugin {
       final errorDom = XmlDocument.parse(xmlError);
 
       final fault = errorDom.findAllElements('Fault').first;
-      final errorDescription =
-          fault.findElements('faultstring').first.innerText;
+      final errorDescription = fault
+          .findElements('faultstring')
+          .first
+          .innerText;
       final errorCode =
-          _exceptionStrToCode[errorDescription] ?? _exceptionStrToCode['unknown']!;
+          _exceptionStrToCode[errorDescription] ??
+          _exceptionStrToCode['unknown']!;
 
       final message =
           'UPnP Error $errorCode received: $errorDescription from $_url';

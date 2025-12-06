@@ -535,14 +535,10 @@ class Service {
       // Fetch the SCPD XML document
       final scpdUri = Uri.parse('$baseUrl$scpdUrl');
       final client = httpClient ?? http.Client();
-      final response = await client
-          .get(scpdUri)
-          .timeout(Duration(seconds: 10));
+      final response = await client.get(scpdUri).timeout(Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        _log.warning(
-          'Failed to fetch SCPD document: ${response.statusCode}',
-        );
+        _log.warning('Failed to fetch SCPD document: ${response.statusCode}');
         return actions;
       }
 
@@ -567,12 +563,14 @@ class Service {
         );
 
         for (final state in stateVars) {
-          final name = state
+          final name =
+              state
                   .findElements('name', namespace: ns)
                   .firstOrNull
                   ?.innerText ??
               '';
-          final datatype = state
+          final datatype =
+              state
                   .findElements('dataType', namespace: ns)
                   .firstOrNull
                   ?.innerText ??
@@ -609,10 +607,7 @@ class Service {
                 .firstOrNull
                 ?.innerText;
             if (minimum != null && maximum != null) {
-              range = [
-                int.tryParse(minimum) ?? 0,
-                int.tryParse(maximum) ?? 0,
-              ];
+              range = [int.tryParse(minimum) ?? 0, int.tryParse(maximum) ?? 0];
             }
           }
 
@@ -631,7 +626,8 @@ class Service {
         final actionElements = actionList.findElements('action', namespace: ns);
 
         for (final actionEl in actionElements) {
-          final actionName = actionEl
+          final actionName =
+              actionEl
                   .findElements('name', namespace: ns)
                   .firstOrNull
                   ?.innerText ??
@@ -649,23 +645,27 @@ class Service {
             final arguments = argList.findElements('argument', namespace: ns);
 
             for (final arg in arguments) {
-              final argName = arg
+              final argName =
+                  arg
                       .findElements('name', namespace: ns)
                       .firstOrNull
                       ?.innerText ??
                   '';
-              final direction = arg
+              final direction =
+                  arg
                       .findElements('direction', namespace: ns)
                       .firstOrNull
                       ?.innerText ??
                   '';
-              final relatedVar = arg
+              final relatedVar =
+                  arg
                       .findElements('relatedStateVariable', namespace: ns)
                       .firstOrNull
                       ?.innerText ??
                   '';
 
-              final vartype = vartypes[relatedVar] ??
+              final vartype =
+                  vartypes[relatedVar] ??
                   Vartype(datatype: 'string'); // Default fallback
 
               final argument = Argument(name: argName, vartype: vartype);
@@ -678,11 +678,9 @@ class Service {
             }
           }
 
-          actions.add(Action(
-            name: actionName,
-            inArgs: inArgs,
-            outArgs: outArgs,
-          ));
+          actions.add(
+            Action(name: actionName, inArgs: inArgs, outArgs: outArgs),
+          );
         }
       }
     } catch (e) {
@@ -723,14 +721,10 @@ class Service {
       // Fetch the SCPD XML document
       final scpdUri = Uri.parse('$baseUrl$scpdUrl');
       final client = httpClient ?? http.Client();
-      final response = await client
-          .get(scpdUri)
-          .timeout(Duration(seconds: 10));
+      final response = await client.get(scpdUri).timeout(Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        _log.warning(
-          'Failed to fetch SCPD document: ${response.statusCode}',
-        );
+        _log.warning('Failed to fetch SCPD document: ${response.statusCode}');
         return eventVars;
       }
 
@@ -748,12 +742,14 @@ class Service {
         // Check if sendEvents attribute is "yes"
         final sendEvents = state.getAttribute('sendEvents');
         if (sendEvents == 'yes') {
-          final name = state
+          final name =
+              state
                   .findElements('name', namespace: ns)
                   .firstOrNull
                   ?.innerText ??
               '';
-          final datatype = state
+          final datatype =
+              state
                   .findElements('dataType', namespace: ns)
                   .firstOrNull
                   ?.innerText ??

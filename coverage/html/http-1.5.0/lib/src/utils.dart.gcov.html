@@ -1,0 +1,162 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - http-1.5.0/lib/src/utils.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory http-1.5.0/lib/src">http-1.5.0/lib/src</a> - utils.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">51.9&nbsp;%</td>
+            <td class="headerCovTableEntry">27</td>
+            <td class="headerCovTableEntry">14</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2025-12-06 10:24:05</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : // Copyright (c) 2012, the Dart project authors.  Please see the AUTHORS file</span>
+<span id="L2"><span class="lineNum">       2</span>              : // for details. All rights reserved. Use of this source code is governed by a</span>
+<span id="L3"><span class="lineNum">       3</span>              : // BSD-style license that can be found in the LICENSE file.</span>
+<span id="L4"><span class="lineNum">       4</span>              : </span>
+<span id="L5"><span class="lineNum">       5</span>              : import 'dart:async';</span>
+<span id="L6"><span class="lineNum">       6</span>              : import 'dart:convert';</span>
+<span id="L7"><span class="lineNum">       7</span>              : import 'dart:typed_data';</span>
+<span id="L8"><span class="lineNum">       8</span>              : </span>
+<span id="L9"><span class="lineNum">       9</span>              : import 'package:http_parser/http_parser.dart';</span>
+<span id="L10"><span class="lineNum">      10</span>              : </span>
+<span id="L11"><span class="lineNum">      11</span>              : import 'byte_stream.dart';</span>
+<span id="L12"><span class="lineNum">      12</span>              : </span>
+<span id="L13"><span class="lineNum">      13</span>              : /// Converts a [Map] from parameter names to values to a URL query string.</span>
+<span id="L14"><span class="lineNum">      14</span>              : ///</span>
+<span id="L15"><span class="lineNum">      15</span>              : ///     mapToQuery({&quot;foo&quot;: &quot;bar&quot;, &quot;baz&quot;: &quot;bang&quot;});</span>
+<span id="L16"><span class="lineNum">      16</span>              : ///     //=&gt; &quot;foo=bar&amp;baz=bang&quot;</span>
+<span id="L17"><span class="lineNum">      17</span> <span class="tlaUNC">           0 : String mapToQuery(Map&lt;String, String&gt; map, {required Encoding encoding}) =&gt;</span></span>
+<span id="L18"><span class="lineNum">      18</span> <span class="tlaUNC">           0 :     map.entries</span></span>
+<span id="L19"><span class="lineNum">      19</span> <span class="tlaUNC">           0 :         .map((e) =&gt; '${Uri.encodeQueryComponent(e.key, encoding: encoding)}'</span></span>
+<span id="L20"><span class="lineNum">      20</span> <span class="tlaUNC">           0 :             '=${Uri.encodeQueryComponent(e.value, encoding: encoding)}')</span></span>
+<span id="L21"><span class="lineNum">      21</span> <span class="tlaUNC">           0 :         .join('&amp;');</span></span>
+<span id="L22"><span class="lineNum">      22</span>              : </span>
+<span id="L23"><span class="lineNum">      23</span>              : /// Determines the appropriate [Encoding] based on the given [contentTypeHeader]</span>
+<span id="L24"><span class="lineNum">      24</span>              : ///</span>
+<span id="L25"><span class="lineNum">      25</span>              : /// - If the `Content-Type` is `application/json` and no charset is specified,</span>
+<span id="L26"><span class="lineNum">      26</span>              : ///   it defaults to [utf8].</span>
+<span id="L27"><span class="lineNum">      27</span>              : /// - If a charset is specified in the parameters,</span>
+<span id="L28"><span class="lineNum">      28</span>              : ///   it attempts to find a matching [Encoding].</span>
+<span id="L29"><span class="lineNum">      29</span>              : /// - If no charset is specified or the charset is unknown,</span>
+<span id="L30"><span class="lineNum">      30</span>              : ///   it falls back to the provided [fallback], which defaults to [latin1].</span>
+<span id="L31"><span class="lineNum">      31</span> <span class="tlaGNC">          12 : Encoding encodingForContentTypeHeader(MediaType contentTypeHeader,</span></span>
+<span id="L32"><span class="lineNum">      32</span>              :     [Encoding fallback = latin1]) {</span>
+<span id="L33"><span class="lineNum">      33</span> <span class="tlaGNC">          24 :   final charset = contentTypeHeader.parameters['charset'];</span></span>
+<span id="L34"><span class="lineNum">      34</span>              : </span>
+<span id="L35"><span class="lineNum">      35</span>              :   // Default to utf8 for application/json when charset is unspecified.</span>
+<span id="L36"><span class="lineNum">      36</span> <span class="tlaGNC">          24 :   if (contentTypeHeader.type == 'application' &amp;&amp;</span></span>
+<span id="L37"><span class="lineNum">      37</span> <span class="tlaGNC">          20 :       contentTypeHeader.subtype == 'json' &amp;&amp;</span></span>
+<span id="L38"><span class="lineNum">      38</span>              :       charset == null) {</span>
+<span id="L39"><span class="lineNum">      39</span>              :     return utf8;</span>
+<span id="L40"><span class="lineNum">      40</span>              :   }</span>
+<span id="L41"><span class="lineNum">      41</span>              : </span>
+<span id="L42"><span class="lineNum">      42</span>              :   // Attempt to find the encoding or fall back to the default.</span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">           3 :   return charset != null ? Encoding.getByName(charset) ?? fallback : fallback;</span></span>
+<span id="L44"><span class="lineNum">      44</span>              : }</span>
+<span id="L45"><span class="lineNum">      45</span>              : </span>
+<span id="L46"><span class="lineNum">      46</span>              : /// Returns the [Encoding] that corresponds to [charset].</span>
+<span id="L47"><span class="lineNum">      47</span>              : ///</span>
+<span id="L48"><span class="lineNum">      48</span>              : /// Throws a [FormatException] if no [Encoding] was found that corresponds to</span>
+<span id="L49"><span class="lineNum">      49</span>              : /// [charset].</span>
+<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">           9 : Encoding requiredEncodingForCharset(String charset) =&gt;</span></span>
+<span id="L51"><span class="lineNum">      51</span> <span class="tlaGNC">           9 :     Encoding.getByName(charset) ??</span></span>
+<span id="L52"><span class="lineNum">      52</span> <span class="tlaUNC">           0 :     (throw FormatException('Unsupported encoding &quot;$charset&quot;.'));</span></span>
+<span id="L53"><span class="lineNum">      53</span>              : </span>
+<span id="L54"><span class="lineNum">      54</span>              : /// A regular expression that matches strings that are composed entirely of</span>
+<span id="L55"><span class="lineNum">      55</span>              : /// ASCII-compatible characters.</span>
+<span id="L56"><span class="lineNum">      56</span> <span class="tlaUNC">           0 : final _asciiOnly = RegExp(r'^[\x00-\x7F]+$');</span></span>
+<span id="L57"><span class="lineNum">      57</span>              : </span>
+<span id="L58"><span class="lineNum">      58</span>              : /// Returns whether [string] is composed entirely of ASCII-compatible</span>
+<span id="L59"><span class="lineNum">      59</span>              : /// characters.</span>
+<span id="L60"><span class="lineNum">      60</span> <span class="tlaUNC">           0 : bool isPlainAscii(String string) =&gt; _asciiOnly.hasMatch(string);</span></span>
+<span id="L61"><span class="lineNum">      61</span>              : </span>
+<span id="L62"><span class="lineNum">      62</span>              : /// Converts [input] into a [Uint8List].</span>
+<span id="L63"><span class="lineNum">      63</span>              : ///</span>
+<span id="L64"><span class="lineNum">      64</span>              : /// If [input] is a [TypedData], this just returns a view on [input].</span>
+<span id="L65"><span class="lineNum">      65</span> <span class="tlaGNC">          12 : Uint8List toUint8List(List&lt;int&gt; input) {</span></span>
+<span id="L66"><span class="lineNum">      66</span> <span class="tlaGNC">          12 :   if (input is Uint8List) return input;</span></span>
+<span id="L67"><span class="lineNum">      67</span> <span class="tlaGNC">          11 :   if (input case TypedData data) {</span></span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaUNC">           0 :     return Uint8List.view(data.buffer);</span></span>
+<span id="L69"><span class="lineNum">      69</span>              :   }</span>
+<span id="L70"><span class="lineNum">      70</span> <span class="tlaGNC">          11 :   return Uint8List.fromList(input);</span></span>
+<span id="L71"><span class="lineNum">      71</span>              : }</span>
+<span id="L72"><span class="lineNum">      72</span>              : </span>
+<span id="L73"><span class="lineNum">      73</span> <span class="tlaGNC">          12 : ByteStream toByteStream(Stream&lt;List&lt;int&gt;&gt; stream) {</span></span>
+<span id="L74"><span class="lineNum">      74</span> <span class="tlaGNC">          12 :   if (stream is ByteStream) return stream;</span></span>
+<span id="L75"><span class="lineNum">      75</span> <span class="tlaGNC">           1 :   return ByteStream(stream);</span></span>
+<span id="L76"><span class="lineNum">      76</span>              : }</span>
+<span id="L77"><span class="lineNum">      77</span>              : </span>
+<span id="L78"><span class="lineNum">      78</span>              : /// Calls [onDone] once [stream] (a single-subscription [Stream]) is finished.</span>
+<span id="L79"><span class="lineNum">      79</span>              : ///</span>
+<span id="L80"><span class="lineNum">      80</span>              : /// The return value, also a single-subscription [Stream] should be used in</span>
+<span id="L81"><span class="lineNum">      81</span>              : /// place of [stream] after calling this method.</span>
+<span id="L82"><span class="lineNum">      82</span> <span class="tlaUNC">           0 : Stream&lt;T&gt; onDone&lt;T&gt;(Stream&lt;T&gt; stream, void Function() onDone) =&gt;</span></span>
+<span id="L83"><span class="lineNum">      83</span> <span class="tlaUNC">           0 :     stream.transform(StreamTransformer.fromHandlers(handleDone: (sink) {</span></span>
+<span id="L84"><span class="lineNum">      84</span> <span class="tlaUNC">           0 :       sink.close();</span></span>
+<span id="L85"><span class="lineNum">      85</span> <span class="tlaUNC">           0 :       onDone();</span></span>
+<span id="L86"><span class="lineNum">      86</span>              :     }));</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com//linux-test-project/lcov" target="_parent">LCOV version 2.3.1-1</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

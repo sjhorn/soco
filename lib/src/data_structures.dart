@@ -22,15 +22,19 @@ final _log = Logger('soco.data_structures');
 final Map<String, Type> _didlClassToClass = {};
 
 // Global mapping of DIDL class strings to factory functions for dynamically created classes
-final Map<String, DidlObject Function({
-  required String title,
-  required String parentId,
-  required String itemId,
-  bool? restricted,
-  List<DidlResource>? resources,
-  Map<String, dynamic>? desc,
-  Map<String, dynamic>? metadata,
-})> _didlClassToFactory = {};
+final Map<
+  String,
+  DidlObject Function({
+    required String title,
+    required String parentId,
+    required String itemId,
+    bool? restricted,
+    List<DidlResource>? resources,
+    Map<String, dynamic>? desc,
+    Map<String, dynamic>? metadata,
+  })
+>
+_didlClassToFactory = {};
 
 /// Official DIDL-Lite classes
 const Set<String> officialClasses = {
@@ -115,223 +119,227 @@ Type didlClassToSoCoClass(String didlClass) {
 
   // Create a factory function for this unknown class
   // Use a helper function to create the instance with the correct type
-  _didlClassToFactory[didlClass] = ({
-    required String title,
-    required String parentId,
-    required String itemId,
-    bool? restricted,
-    List<DidlResource>? resources,
-    Map<String, dynamic>? desc,
-    Map<String, dynamic>? metadata,
-  }) {
-    // Create instance of the base class with the DIDL class override
-    // We need to handle all possible base classes
-    final descString = desc?['RINCON_AssociatedZPUDN'] ?? 'RINCON_AssociatedZPUDN';
-    
-    // Check if baseClass is a container type
-    if (baseClass == DidlContainer || 
-        baseClass == DidlAlbum || 
-        baseClass == DidlMusicAlbum ||
-        baseClass == DidlPerson ||
-        baseClass == DidlComposer ||
-        baseClass == DidlMusicArtist ||
-        baseClass == DidlPlaylistContainer ||
-        baseClass == DidlGenre ||
-        baseClass == DidlMusicGenre) {
-      // Use the most specific container constructor available
-      if (baseClass == DidlAlbum) {
-        return DidlAlbum(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlMusicAlbum) {
-        return DidlMusicAlbum(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlPerson) {
-        return DidlPerson(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlComposer) {
-        return DidlComposer(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlMusicArtist) {
-        return DidlMusicArtist(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlPlaylistContainer) {
-        return DidlPlaylistContainer(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlGenre) {
-        return DidlGenre(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlMusicGenre) {
-        return DidlMusicGenre(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else {
-        // Default container
-        return DidlContainer(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      }
-    } else if (baseClass == DidlAudioItem ||
-               baseClass == DidlMusicTrack ||
-               baseClass == DidlAudioBook ||
-               baseClass == DidlAudioBroadcast ||
-               baseClass == DidlAudioLineIn) {
-      // Use the most specific audio item constructor
-      if (baseClass == DidlMusicTrack) {
-        return DidlMusicTrack(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlAudioBook) {
-        return DidlAudioBook(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlAudioBroadcast) {
-        return DidlAudioBroadcast(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else if (baseClass == DidlAudioLineIn) {
-        return DidlAudioLineIn(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      } else {
-        return DidlAudioItem(
-          title: title,
-          parentId: parentId,
-          itemId: itemId,
-          restricted: restricted ?? true,
-          resources: resources,
-          desc: descString,
-          metadata: metadata,
-          itemClassOverride: didlClass,
-        );
-      }
-    } else if (baseClass == DidlItem) {
-      return DidlItem(
-        title: title,
-        parentId: parentId,
-        itemId: itemId,
-        restricted: restricted ?? true,
-        resources: resources,
-        desc: descString,
-        metadata: metadata,
-        itemClassOverride: didlClass,
-      );
-    } else {
-      // Default to DidlObject
-      return DidlObject(
-        title: title,
-        parentId: parentId,
-        itemId: itemId,
-        restricted: restricted ?? true,
-        resources: resources,
-        desc: descString,
-        metadata: metadata,
-        itemClassOverride: didlClass,
-      );
-    }
-  };
+  _didlClassToFactory[didlClass] =
+      ({
+        required String title,
+        required String parentId,
+        required String itemId,
+        bool? restricted,
+        List<DidlResource>? resources,
+        Map<String, dynamic>? desc,
+        Map<String, dynamic>? metadata,
+      }) {
+        // Create instance of the base class with the DIDL class override
+        // We need to handle all possible base classes
+        final descString =
+            desc?['RINCON_AssociatedZPUDN'] ?? 'RINCON_AssociatedZPUDN';
+
+        // Check if baseClass is a container type
+        if (baseClass == DidlContainer ||
+            baseClass == DidlAlbum ||
+            baseClass == DidlMusicAlbum ||
+            baseClass == DidlPerson ||
+            baseClass == DidlComposer ||
+            baseClass == DidlMusicArtist ||
+            baseClass == DidlPlaylistContainer ||
+            baseClass == DidlGenre ||
+            baseClass == DidlMusicGenre) {
+          // Use the most specific container constructor available
+          if (baseClass == DidlAlbum) {
+            return DidlAlbum(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlMusicAlbum) {
+            return DidlMusicAlbum(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlPerson) {
+            return DidlPerson(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlComposer) {
+            return DidlComposer(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlMusicArtist) {
+            return DidlMusicArtist(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlPlaylistContainer) {
+            return DidlPlaylistContainer(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlGenre) {
+            return DidlGenre(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlMusicGenre) {
+            return DidlMusicGenre(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else {
+            // Default container
+            return DidlContainer(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          }
+        } else if (baseClass == DidlAudioItem ||
+            baseClass == DidlMusicTrack ||
+            baseClass == DidlAudioBook ||
+            baseClass == DidlAudioBroadcast ||
+            baseClass == DidlAudioLineIn) {
+          // Use the most specific audio item constructor
+          if (baseClass == DidlMusicTrack) {
+            return DidlMusicTrack(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlAudioBook) {
+            return DidlAudioBook(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlAudioBroadcast) {
+            return DidlAudioBroadcast(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else if (baseClass == DidlAudioLineIn) {
+            return DidlAudioLineIn(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          } else {
+            return DidlAudioItem(
+              title: title,
+              parentId: parentId,
+              itemId: itemId,
+              restricted: restricted ?? true,
+              resources: resources,
+              desc: descString,
+              metadata: metadata,
+              itemClassOverride: didlClass,
+            );
+          }
+        } else if (baseClass == DidlItem) {
+          return DidlItem(
+            title: title,
+            parentId: parentId,
+            itemId: itemId,
+            restricted: restricted ?? true,
+            resources: resources,
+            desc: descString,
+            metadata: metadata,
+            itemClassOverride: didlClass,
+          );
+        } else {
+          // Default to DidlObject
+          return DidlObject(
+            title: title,
+            parentId: parentId,
+            itemId: itemId,
+            restricted: restricted ?? true,
+            resources: resources,
+            desc: descString,
+            metadata: metadata,
+            itemClassOverride: didlClass,
+          );
+        }
+      };
 
   // Register the factory and return the base class type
   // Note: We can't return a new Type, so we return the base class
   // but the factory function will create instances with the correct itemClass
-  _log.fine('Created dynamic factory for unknown DIDL class: $didlClass (base: $baseClass)');
+  _log.fine(
+    'Created dynamic factory for unknown DIDL class: $didlClass (base: $baseClass)',
+  );
   return baseClass;
 }
 
@@ -347,7 +355,8 @@ DidlObject Function({
   List<DidlResource>? resources,
   Map<String, dynamic>? desc,
   Map<String, dynamic>? metadata,
-})? getDidlClassFactory(String didlClass) {
+})?
+getDidlClassFactory(String didlClass) {
   // Clean up the class name
   for (final separator in ['.#', '#']) {
     if (didlClass.contains(separator)) {
@@ -622,7 +631,8 @@ class DidlObject {
 
   /// Pre-computed lookup keys for translation entries (optimization)
   /// Maps metadata key -> 'namespaceUri:localName' for fast element lookup
-  static final Map<String, String> _translationLookupKeys = _buildTranslationLookupKeys();
+  static final Map<String, String> _translationLookupKeys =
+      _buildTranslationLookupKeys();
 
   static Map<String, String> _buildTranslationLookupKeys() {
     final keys = <String, String>{};
@@ -719,7 +729,8 @@ class DidlObject {
       List<DidlResource>? resources,
       Map<String, dynamic>? desc,
       Map<String, dynamic>? metadata,
-    }) factory,
+    })
+    factory,
     String itemClass,
   ) {
     final (title, parentId, itemId, restricted, resources, desc, metadata) =
@@ -919,7 +930,8 @@ class DidlObject {
     List<DidlResource> resources,
     Map<String, dynamic>? desc,
     Map<String, dynamic> metadata,
-  ) _parseElementAttributes(XmlElement element) {
+  )
+  _parseElementAttributes(XmlElement element) {
     // Extract attributes
     final itemId = element.getAttribute('id');
     if (itemId == null || itemId.isEmpty) {
@@ -936,10 +948,10 @@ class DidlObject {
     // Spotify Direct violates this. To make it work, a missing restricted
     // tag is interpreted as `restricted = true`.
     final restrictedAttr = element.getAttribute('restricted');
-    final restricted = restrictedAttr == null ||
+    final restricted =
+        restrictedAttr == null ||
         restrictedAttr == '' ||
-        (restrictedAttr != '0' &&
-            restrictedAttr.toLowerCase() != 'false');
+        (restrictedAttr != '0' && restrictedAttr.toLowerCase() != 'false');
 
     // Optimize: collect child elements once for multiple lookups
     // Only build map if we have translation entries to process
@@ -948,11 +960,11 @@ class DidlObject {
     XmlElement? titleEl;
     XmlElement? descEl;
     final resElements = <XmlElement>[];
-    
+
     for (final child in element.childElements) {
       final localName = child.name.local;
       final namespaceUri = child.name.namespaceUri;
-      
+
       // Track specific elements we need
       if (localName == 'title' && namespaceUri == soco_xml.namespaces['dc']) {
         titleEl = child;
@@ -961,7 +973,7 @@ class DidlObject {
       } else if (localName == 'res') {
         resElements.add(child);
       }
-      
+
       // Store for metadata lookup if needed
       if (needsMetadataLookup) {
         final key = '$namespaceUri:$localName';

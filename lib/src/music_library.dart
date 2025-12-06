@@ -84,12 +84,12 @@ class MusicLibrary {
   ///
   /// This handles the incomplete fromDidlString implementation that returns
   /// Maps instead of DidlObject instances.
-  /// 
+  ///
   /// This is public so it can be used by SoCo.getQueue().
   DidlObject mapToDidlObject(Map<String, dynamic> itemMap) {
     final cls = itemMap['class'] as Type;
     final element = itemMap['element'] as XmlElement;
-    
+
     // Extract common attributes
     final titleEl = element
         .findElements('title', namespace: 'http://purl.org/dc/elements/1.1/')
@@ -98,7 +98,7 @@ class MusicLibrary {
     final id = element.getAttribute('id') ?? '';
     final parentId = element.getAttribute('parentID') ?? '';
     final restricted = element.getAttribute('restricted') == 'true';
-    
+
     // Extract resources
     final resources = <DidlResource>[];
     for (final resEl in element.findElements('res')) {
@@ -108,7 +108,7 @@ class MusicLibrary {
         resources.add(DidlResource(uri: uri, protocolInfo: protocolInfo));
       }
     }
-    
+
     // Create the appropriate DidlObject instance based on class type
     if (cls == DidlPlaylistContainer) {
       return DidlPlaylistContainer(

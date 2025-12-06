@@ -75,28 +75,21 @@ void main() async {
   // Benchmark 3: DIDL object creation
   print('\n3. DIDL Object Creation');
   print('-' * 50);
-  await benchmark(
-    'Create DidlMusicTrack (10000 iterations)',
-    () {
-      return DidlMusicTrack(
-        title: 'Test Track',
-        parentId: '0',
-        itemId: '1',
-        restricted: true,
-        resources: [
-          DidlResource(
-            uri: 'http://example.com/track.mp3',
-            protocolInfo: 'http-get:*:audio/mpeg:*',
-          ),
-        ],
-        metadata: {
-          'artist': 'Test Artist',
-          'album': 'Test Album',
-        },
-      );
-    },
-    iterations: 10000,
-  );
+  await benchmark('Create DidlMusicTrack (10000 iterations)', () {
+    return DidlMusicTrack(
+      title: 'Test Track',
+      parentId: '0',
+      itemId: '1',
+      restricted: true,
+      resources: [
+        DidlResource(
+          uri: 'http://example.com/track.mp3',
+          protocolInfo: 'http-get:*:audio/mpeg:*',
+        ),
+      ],
+      metadata: {'artist': 'Test Artist', 'album': 'Test Album'},
+    );
+  }, iterations: 10000);
 
   // Benchmark 4: DIDL to string conversion
   print('\n4. DIDL to String Conversion (toDidlString)');
@@ -111,14 +104,10 @@ void main() async {
   // Benchmark 5: Round-trip (parse -> create -> serialize)
   print('\n5. Round-trip Performance');
   print('-' * 50);
-  await benchmark(
-    'Parse -> Serialize round-trip (500 iterations)',
-    () {
-      final objects = entry.fromDidlString(complexDidl);
-      return toDidlString(objects);
-    },
-    iterations: 500,
-  );
+  await benchmark('Parse -> Serialize round-trip (500 iterations)', () {
+    final objects = entry.fromDidlString(complexDidl);
+    return toDidlString(objects);
+  }, iterations: 500);
 
   // Benchmark 6: fromElement performance
   print('\n6. fromElement Performance');
@@ -170,4 +159,3 @@ Future<void> benchmark(
   print('  Average: ${avgMs.toStringAsFixed(3)}ms per operation');
   print('  Throughput: $opsPerSec ops/sec');
 }
-

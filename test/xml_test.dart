@@ -48,10 +48,16 @@ void main() {
     test('filterIllegalXmlChars preserves valid characters', () {
       // Valid characters should be preserved
       expect(filterIllegalXmlChars('Hello World!'), equals('Hello World!'));
-      expect(filterIllegalXmlChars('<tag>value</tag>'), equals('<tag>value</tag>'));
+      expect(
+        filterIllegalXmlChars('<tag>value</tag>'),
+        equals('<tag>value</tag>'),
+      );
       expect(filterIllegalXmlChars('tab\there'), equals('tab\there'));
       expect(filterIllegalXmlChars('new\nline'), equals('new\nline'));
-      expect(filterIllegalXmlChars('carriage\rreturn'), equals('carriage\rreturn'));
+      expect(
+        filterIllegalXmlChars('carriage\rreturn'),
+        equals('carriage\rreturn'),
+      );
     });
 
     test('filterIllegalXmlChars handles empty string', () {
