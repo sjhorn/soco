@@ -106,26 +106,6 @@ Sonos speakers from Dart applications.
 - Updated `services.dart` with proper `eventSubscriptionUrl` and `defaultArgs`
   for all UPnP services to match Python SoCo implementation
 
-## [0.1.4] - 2025-12-01
-
-### Test Coverage Improvements
-
-- **Increased core.dart test coverage to 81.7%** (826/1011 lines), exceeding 80% goal
-- **Added comprehensive tests** for soundbar and subwoofer methods:
-  - `setSubEnabled` and `setSubGain` error handling and command validation
-  - `surroundFullVolumeEnabled` getter/setter with proper null handling
-  - `surroundVolumeTv` and `surroundVolumeMusic` getters/setters with validation
-  - All methods properly handle non-soundbar/non-subwoofer devices
-- **Fixed test infrastructure**:
-  - Resolved singleton caching issues by using unique IP addresses per test
-  - Fixed `GetZoneGroupState` mocking with valid XML content
-- **Test suite**: 235 passing unit tests in `core_basic_test.dart`
-
-### Changed
-
-- Improved test isolation using separate SoCo instances per test scenario
-- Enhanced HTTP mocking for ZoneGroupState-dependent methods
-
 ## [0.1.3] - 2025-12-01
 
 ### Test Coverage Improvements
@@ -182,9 +162,8 @@ Sonos speakers from Dart applications.
 - Namespace tag generation uses pre-computed constants for common cases
 - Translation lookup keys pre-computed at class initialization
 
-[0.1.4]: https://github.com/sjhorn/soco/releases/tag/v0.1.4
 [0.1.3]: https://github.com/sjhorn/soco/releases/tag/v0.1.3
 [0.1.2]: https://github.com/sjhorn/soco/releases/tag/v0.1.2
 [0.1.1]: https://github.com/sjhorn/soco/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
-[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.3...HEAD
