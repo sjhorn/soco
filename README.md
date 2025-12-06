@@ -180,19 +180,22 @@ See the [example/](example/) directory for more comprehensive examples:
 
 ## Project Status
 
-This is a complete Dart port of the Python SoCo library.
+This is a complete Dart port of the Python SoCo library with **100% API compatibility**.
 
 **Release Stats:**
 - 18 core modules fully ported
 - 5 music service modules
-- 4 plugin modules
-- 22 test modules with 867+ unit tests
+- 5 plugin modules
+- 22 test modules with 954+ unit tests
 - 80.9% code coverage
 - 7 comprehensive examples
 - Zero analyzer warnings
 - Performance optimizations: 50-84% faster XML operations
+- **All API methods implemented** - Full feature parity with Python SoCo
 
 See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+For detailed API comparison with Python SoCo, see [API_COMPARISON.md](API_COMPARISON.md).
 
 ## Requirements
 

@@ -145,11 +145,11 @@ final Map<String, SoCo> _socoInstances = {};
 /// ## Queue Management
 /// - [getQueue]
 /// - [queueSize]
-/// - [addToQueue]
-/// - [addUriToQueue]
-/// - [addMultipleToQueue]
-/// - [removeFromQueue]
-/// - [clearQueue]
+/// - [addToQueue] - Add a DidlObject to the queue
+/// - [addUriToQueue] - Add a URI to the queue
+/// - [addMultipleToQueue] - Add multiple items to the queue in batches
+/// - [removeFromQueue] - Remove a track from the queue
+/// - [clearQueue] - Clear all tracks from the queue
 ///
 /// ## Group Management
 /// - [group]
@@ -1790,6 +1790,114 @@ class SoCo {
     return int.parse(qnumber ?? '0');
   }
 
+  /// Add a queueable item to the queue.
+  ///
+  /// This method accepts a [DidlObject] (or subclass) and adds it to the queue.
+  /// This is more convenient than [addUriToQueue] when you already have a DIDL
+  /// object.
+  ///
+  /// Parameters:
+  ///   - [queueableItem]: The item to be added to the queue (must have at least
+  ///     one resource)
+  ///   - [position]: The index (1-based) at which the item should be added.
+  ///     Default is 0 (add at the end of the queue).
+  ///   - [asNext]: Whether this item should be played as the next track in
+  ///     shuffle mode. This only works if play_mode=SHUFFLE.
+  ///
+  /// Returns:
+  ///   The index of the new item in the queue.
+  ///
+  /// Throws:
+  ///   - [ArgumentError]: If the item has no resources
+  Future<int> addToQueue(
+    DidlObject queueableItem, {
+    int position = 0,
+    bool asNext = false,
+  }) async {
+    if (queueableItem.resources.isEmpty) {
+      throw ArgumentError('Queueable item must have at least one resource');
+    }
+
+    final metadata = toDidlString([queueableItem]);
+    final uri = queueableItem.resources[0].uri;
+
+    final response = await avTransport.sendCommand(
+      'AddURIToQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EnqueuedURI', uri),
+        MapEntry('EnqueuedURIMetaData', metadata),
+        MapEntry('DesiredFirstTrackNumberEnqueued', position),
+        MapEntry('EnqueueAsNext', asNext ? 1 : 0),
+      ],
+    );
+
+    final qnumber = response['FirstTrackNumberEnqueued'];
+    return int.parse(qnumber ?? '0');
+  }
+
+  /// Add multiple items to the queue in batches.
+  ///
+  /// This method adds a sequence of items to the queue efficiently by batching
+  /// them (up to 16 items per request). This is more efficient than calling
+  /// [addToQueue] multiple times.
+  ///
+  /// Parameters:
+  ///   - [items]: A list of items to be added to the queue (each must have at
+  ///     least one resource)
+  ///   - [container]: An optional container object which includes the items
+  ///
+  /// Throws:
+  ///   - [ArgumentError]: If any item has no resources
+  Future<void> addMultipleToQueue(
+    List<DidlObject> items, {
+    DidlObject? container,
+  }) async {
+    String containerUri = '';
+    String containerMetadata = '';
+
+    if (container != null) {
+      if (container.resources.isEmpty) {
+        throw ArgumentError('Container must have at least one resource');
+      }
+      containerUri = container.resources[0].uri;
+      containerMetadata = toDidlString([container]);
+    }
+
+    const chunkSize = 16; // Sonos allows up to 16 items per request
+    for (var index = 0; index < items.length; index += chunkSize) {
+      final chunk = items.skip(index).take(chunkSize).toList();
+
+      // Validate all items have resources
+      for (final item in chunk) {
+        if (item.resources.isEmpty) {
+          throw ArgumentError(
+            'All items must have at least one resource',
+          );
+        }
+      }
+
+      // Build space-separated URIs and metadata strings
+      final uris = chunk.map((item) => item.resources[0].uri).join(' ');
+      final uriMetadata = chunk.map((item) => toDidlString([item])).join(' ');
+
+      await avTransport.sendCommand(
+        'AddMultipleURIsToQueue',
+        args: [
+          MapEntry('InstanceID', 0),
+          MapEntry('UpdateID', 0),
+          MapEntry('NumberOfURIs', chunk.length),
+          MapEntry('EnqueuedURIs', uris),
+          MapEntry('EnqueuedURIsMetaData', uriMetadata),
+          MapEntry('ContainerURI', containerUri),
+          MapEntry('ContainerMetaData', containerMetadata),
+          MapEntry('DesiredFirstTrackNumberEnqueued', 0),
+          MapEntry('EnqueueAsNext', 0),
+        ],
+      );
+    }
+  }
+
   /// Remove a track from the queue by index.
   ///
   /// The index number is required as an argument, where the first index is 0.
@@ -2029,6 +2137,17 @@ class SoCo {
     );
   }
 
+  /// Convenience wrapper for [dialogMode] getter to match raw Sonos API.
+  ///
+  /// This is an alias for [dialogMode].
+  Future<bool?> get dialogLevel async => dialogMode;
+
+  /// Convenience wrapper for [setDialogMode] to match raw Sonos API.
+  ///
+  /// This is an alias for [setDialogMode].
+  Future<void> setDialogLevel(bool dialogLevel) async =>
+      setDialogMode(dialogLevel);
+
   ///////////////////////////////////////////////////////////////////////////
   // SURROUND AND SUBWOOFER SETTINGS
   ///////////////////////////////////////////////////////////////////////////
@@ -2225,6 +2344,17 @@ class SoCo {
     );
   }
 
+  /// Convenience wrapper for [surroundFullVolumeEnabled] getter to match raw Sonos API.
+  ///
+  /// This is an alias for [surroundFullVolumeEnabled].
+  Future<bool?> get surroundMode async => surroundFullVolumeEnabled;
+
+  /// Convenience wrapper for [setSurroundFullVolumeEnabled] to match raw Sonos API.
+  ///
+  /// This is an alias for [setSurroundFullVolumeEnabled].
+  Future<void> setSurroundMode(bool value) async =>
+      setSurroundFullVolumeEnabled(value);
+
   /// Get the relative volume for surround speakers in TV playback mode.
   ///
   /// Ranges from -15 to +15.
@@ -2261,6 +2391,17 @@ class SoCo {
       ],
     );
   }
+
+  /// Convenience wrapper for [surroundVolumeTv] getter to match raw Sonos API.
+  ///
+  /// This is an alias for [surroundVolumeTv].
+  Future<int?> get surroundLevel async => surroundVolumeTv;
+
+  /// Convenience wrapper for [setSurroundVolumeTv] to match raw Sonos API.
+  ///
+  /// This is an alias for [setSurroundVolumeTv].
+  Future<void> setSurroundLevel(int relativeVolume) async =>
+      setSurroundVolumeTv(relativeVolume);
 
   /// Return the relative volume for surround speakers in music mode.
   ///
@@ -2302,6 +2443,17 @@ class SoCo {
     );
   }
 
+  /// Convenience wrapper for [surroundVolumeMusic] getter to match raw Sonos API.
+  ///
+  /// This is an alias for [surroundVolumeMusic].
+  Future<int?> get musicSurroundLevel async => surroundVolumeMusic;
+
+  /// Convenience wrapper for [setSurroundVolumeMusic] to match raw Sonos API.
+  ///
+  /// This is an alias for [setSurroundVolumeMusic].
+  Future<void> setMusicSurroundLevel(int relativeVolume) async =>
+      setSurroundVolumeMusic(relativeVolume);
+
   /// Whether Trueplay is enabled on this device.
   ///
   /// Returns true if on, false if off.
@@ -2342,6 +2494,101 @@ class SoCo {
       args: [
         MapEntry('InstanceID', 0),
         MapEntry('RoomCalibrationEnabled', trueplay ? '1' : '0'),
+      ],
+    );
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // SOUNDBAR AUDIO INPUT FORMAT
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Return audio input format code as reported by the device.
+  ///
+  /// Returns null when the device is not a soundbar.
+  ///
+  /// While the variable is available on non-soundbar devices, it is likely
+  /// always 0 for devices without audio inputs.
+  ///
+  /// See also [soundbarAudioInputFormat] for obtaining a human-readable
+  /// description of the format.
+  Future<int?> get soundbarAudioInputFormatCode async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final response = await deviceProperties.sendCommand('GetZoneInfo');
+    final htaudioIn = response['HTAudioIn'];
+    return htaudioIn != null ? int.tryParse(htaudioIn.toString()) : null;
+  }
+
+  /// Return a string presentation of the audio input format.
+  ///
+  /// Returns null when the device is not a soundbar.
+  /// Otherwise, this will return the string presentation of the currently
+  /// active sound format (e.g., "Dolby 5.1" or "No input").
+  ///
+  /// See also [soundbarAudioInputFormatCode] for the raw value.
+  Future<String?> get soundbarAudioInputFormat async {
+    if (!await isSoundbar) {
+      return null;
+    }
+
+    final formatCode = await soundbarAudioInputFormatCode;
+    if (formatCode == null) {
+      return null;
+    }
+
+    if (!audioInputFormats.containsKey(formatCode)) {
+      _log.warning('Unknown audio input format: $formatCode');
+      return 'Unknown audio input format: $formatCode';
+    }
+
+    return audioInputFormats[formatCode];
+  }
+
+  ///////////////////////////////////////////////////////////////////////////
+  // SPEECH ENHANCEMENT
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// The speaker's speech enhancement mode.
+  ///
+  /// Returns true if on, false if off, null if not supported.
+  /// Only supported on Arc Ultra soundbars.
+  Future<bool?> get speechEnhanceEnabled async {
+    if (!await isArcUltraSoundbar) {
+      return null;
+    }
+
+    final response = await renderingControl.sendCommand(
+      'GetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SpeechEnhanceEnabled'),
+      ],
+    );
+    return response['CurrentValue'] == '1';
+  }
+
+  /// Switch on/off the Arc Ultra soundbar speech enhancement.
+  ///
+  /// Parameters:
+  ///   - [speechMode]: Enable or disable speech enhancement
+  ///
+  /// Throws:
+  ///   - [NotSupportedException]: If the device does not support speech enhancement
+  Future<void> setSpeechEnhanceEnabled(bool speechMode) async {
+    if (!await isArcUltraSoundbar) {
+      throw NotSupportedException(
+        'The device is not an Arc Ultra and does not support speech enhancement',
+      );
+    }
+
+    await renderingControl.sendCommand(
+      'SetEQ',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('EQType', 'SpeechEnhanceEnabled'),
+        MapEntry('DesiredValue', speechMode ? 1 : 0),
       ],
     );
   }

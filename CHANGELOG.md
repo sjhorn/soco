@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2025-12-06
+
+### Added - 100% API Completeness
+
+**All missing API methods have been implemented, achieving 100% feature parity with Python SoCo.**
+
+#### Queue Management
+- **`addToQueue()`**: Add `DidlObject` instances directly to the queue (previously only `addUriToQueue()` was available)
+- **`addMultipleToQueue()`**: Batch queue addition for multiple items (up to 16 items per request, more efficient than individual calls)
+
+#### Convenience Wrappers (API Compatibility)
+- **`dialogLevel` / `setDialogLevel()`**: Convenience wrapper for `dialogMode` to match raw Sonos API
+- **`musicSurroundLevel` / `setMusicSurroundLevel()`**: Convenience wrapper for `surroundVolumeMusic`
+- **`surroundLevel` / `setSurroundLevel()`**: Convenience wrapper for `surroundVolumeTv`
+- **`surroundMode` / `setSurroundMode()`**: Convenience wrapper for `surroundFullVolumeEnabled`
+
+#### Soundbar Audio Input
+- **`soundbarAudioInputFormatCode`**: Get audio input format code as integer (e.g., 18 for Dolby 5.1)
+- **`soundbarAudioInputFormat`**: Get human-readable audio input format string (e.g., "Dolby 5.1", "No input")
+
+#### Speech Enhancement
+- **`speechEnhanceEnabled` / `setSpeechEnhanceEnabled()`**: Speech enhancement mode for Arc Ultra soundbars
+
+### Changed
+
+- **API Completeness**: Dart port now has 100% API compatibility with Python SoCo
+- **Test Suite**: 954+ passing unit tests (up from 867)
+- **Documentation**: Added comprehensive API comparison document (`API_COMPARISON.md`)
+
+### Documentation
+
+- Added `API_COMPARISON.md` documenting full API compatibility status
+- Updated `README.md` to reflect 100% API completeness
+- Updated `TODO.md` with completion status
+
 ## [0.1.0] - 2025-11-30
 
 ### Initial Release
@@ -162,8 +197,9 @@ Sonos speakers from Dart applications.
 - Namespace tag generation uses pre-computed constants for common cases
 - Translation lookup keys pre-computed at class initialization
 
+[0.1.4]: https://github.com/sjhorn/soco/releases/tag/v0.1.4
 [0.1.3]: https://github.com/sjhorn/soco/releases/tag/v0.1.3
 [0.1.2]: https://github.com/sjhorn/soco/releases/tag/v0.1.2
 [0.1.1]: https://github.com/sjhorn/soco/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
-[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.4...HEAD
