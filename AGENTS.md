@@ -178,4 +178,5 @@ Python SoCo source is in `./SoCo/soco/` for reference during development.
 - **v0.1.0** — Initial draft based on generic Dart package template
 - **v0.1.0** — Merged CLAUDE.md content, updated with published status
 - **v0.1.1** — Updated with integration testing status
-- **v0.1.2** — XML performance optimizations (50-84% faster serialization)  
+- **v0.1.2** — XML performance optimizations (50-84% faster serialization)
+- **v0.1.3** — Test coverage improvements (80.9% overall coverage)  
