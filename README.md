@@ -17,7 +17,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  soco: ^0.1.2
+  soco: ^0.1.3
 ```
 
 Then run:
@@ -187,7 +187,7 @@ This is a complete Dart port of the Python SoCo library.
 - 5 music service modules
 - 4 plugin modules
 - 22 test modules with 867+ unit tests
-- 81% code coverage
+- 80.9% code coverage
 - 7 comprehensive examples
 - Zero analyzer warnings
 - Performance optimizations: 50-84% faster XML operations

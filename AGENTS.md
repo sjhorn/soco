@@ -143,7 +143,7 @@ A: Yes — treat it as living documentation.  [oai_citation:2‡agents.md](https
 
 ## Project Status
 
-**Published:** [soco v0.1.2 on pub.dev](https://pub.dev/packages/soco)
+**Published:** [soco v0.1.3 on pub.dev](https://pub.dev/packages/soco)
 
 This is a Dart port of the Python [SoCo library](https://github.com/SoCo/SoCo) for controlling Sonos speakers programmatically.
 

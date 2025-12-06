@@ -1,14 +1,18 @@
 /// Integration tests for data_structures_entry parsing.
 library;
 
+import 'package:logging/logging.dart';
 import 'package:test/test.dart';
+import 'package:xml/xml.dart';
 // Import data_structures FIRST to ensure initialization happens
 import 'package:soco/src/data_structures.dart';
-import 'package:soco/src/data_structures_entry.dart';
+import 'package:soco/src/data_structures_entry.dart' as entry;
 import 'package:soco/src/exceptions.dart';
-import 'package:xml/xml.dart';
-
 import 'helpers/data_loader.dart';
+
+// Re-export for convenience
+final fromDidlString = entry.fromDidlString;
+final clearFromDidlStringCache = entry.clearFromDidlStringCache;
 
 void main() {
   final dataLoader = DataLoader('data_structures_entry_integration');
@@ -24,7 +28,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlMusicTrack>());
-      expect(result.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.item.audioItem.musicTrack'),
+      );
     });
 
     test('identifies DidlMusicAlbum class from XML', () {
@@ -44,7 +51,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlMusicArtist>());
-      expect(result.effectiveItemClass, equals('object.container.person.musicArtist'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.container.person.musicArtist'),
+      );
     });
 
     test('identifies DidlMusicGenre class from XML', () {
@@ -52,7 +62,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlMusicGenre>());
-      expect(result.effectiveItemClass, equals('object.container.genre.musicGenre'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.container.genre.musicGenre'),
+      );
     });
 
     test('identifies DidlContainer class from XML (share)', () {
@@ -68,7 +81,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlPlaylistContainer>());
-      expect(result.effectiveItemClass, equals('object.container.playlistContainer'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.container.playlistContainer'),
+      );
     });
 
     test('identifies DidlAudioBroadcast class from XML', () {
@@ -76,7 +92,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlAudioBroadcast>());
-      expect(result.effectiveItemClass, equals('object.item.audioItem.audioBroadcast'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.item.audioItem.audioBroadcast'),
+      );
     });
 
     test('handles vendor extended DIDL class - falls back to DidlObject', () {
@@ -96,7 +115,10 @@ void main() {
       final result = fromDidlString(xmlString)[0];
 
       expect(result, isA<DidlComposer>());
-      expect(result.effectiveItemClass, equals('object.container.person.composer'));
+      expect(
+        result.effectiveItemClass,
+        equals('object.container.person.composer'),
+      );
     });
 
     test('throws DIDLMetadataError for missing upnp:class element', () {
@@ -111,11 +133,13 @@ void main() {
 
       expect(
         () => fromDidlString(invalidXml),
-        throwsA(isA<DIDLMetadataError>().having(
-          (e) => e.message,
-          'message',
-          contains('Missing upnp:class'),
-        )),
+        throwsA(
+          isA<DIDLMetadataError>().having(
+            (e) => e.message,
+            'message',
+            contains('Missing upnp:class'),
+          ),
+        ),
       );
     });
 
@@ -129,11 +153,13 @@ void main() {
 
       expect(
         () => fromDidlString(invalidXml),
-        throwsA(isA<DIDLMetadataError>().having(
-          (e) => e.message,
-          'message',
-          contains('Illegal child'),
-        )),
+        throwsA(
+          isA<DIDLMetadataError>().having(
+            (e) => e.message,
+            'message',
+            contains('Illegal child'),
+          ),
+        ),
       );
     });
 
@@ -149,26 +175,118 @@ void main() {
       // The cache is internal so we can't directly inspect it
     });
 
+    test('fromDidlString uses cache for repeated calls', () {
+      // Clear cache first
+      clearFromDidlStringCache();
+
+      final xmlString = dataLoader.loadXml('track.xml');
+
+      // First call - should parse
+      final result1 = fromDidlString(xmlString);
+      expect(result1, isNotEmpty);
+      expect(result1[0], isA<DidlMusicTrack>());
+
+      // Second call with same string - should use cache
+      // We can't directly verify cache hit, but we can verify it returns same result
+      final result2 = fromDidlString(xmlString);
+      expect(result2.length, equals(result1.length));
+      expect(result2[0].title, equals(result1[0].title));
+    });
+
     test('handles XML with control characters by cleaning', () {
-      // This tests the error recovery path (lines 49-53)
-      const xmlWithControlChar = '''<?xml version="1.0"?>
+      // This tests the error recovery path (lines 54-58)
+      // Create XML that will fail initial parse but succeed after cleaning
+      // Use actual control characters that will cause parse failure
+      // We need to create a string with actual null bytes and control chars
+      final xmlWithControlChar = String.fromCharCodes([
+        ...'<?xml version="1.0"?>\n<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"\n           xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"\n           xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">\n  <item id="test'.codeUnits,
+        0x00, // Null byte - illegal in XML
+        0x01, // SOH - illegal in XML
+        ...'id" parentID="-1" restricted="true">\n    <dc:title>Test</dc:title>\n    <upnp:class>object.item.audioItem.musicTrack</upnp:class>\n  </item>\n</DIDL-Lite>'.codeUnits,
+      ]);
+
+      // This should trigger the catch block (line 54) and clean the XML (lines 57-58)
+      // The cleaned version should parse successfully
+      final result = fromDidlString(xmlWithControlChar);
+      expect(result, isA<List>());
+      expect(result.isNotEmpty, isTrue);
+      expect(result[0], isA<DidlMusicTrack>());
+    });
+
+    test('fromDidlString logs when FINE level is enabled', () {
+      // Test the logging path (lines 86-91)
+      // Enable hierarchical logging and FINE logging level
+      Logger.root.level = Level.FINE;
+      final originalLevel = Logger.root.level;
+
+      // Capture log records from root logger (since child loggers propagate)
+      final logRecords = <LogRecord>[];
+      final subscription = Logger.root.onRecord.listen((record) {
+        if (record.loggerName == 'soco.data_structures_entry') {
+          logRecords.add(record);
+        }
+      });
+
+      try {
+        // Clear cache to ensure we hit the parsing path
+        clearFromDidlStringCache();
+        
+        final xmlString = dataLoader.loadXml('track.xml');
+        fromDidlString(xmlString);
+
+        // Verify that a log record was created (lines 87-91 should be hit)
+        expect(
+          logRecords.isNotEmpty,
+          isTrue,
+          reason: 'Expected log records but got none',
+        );
+        expect(
+          logRecords.any((r) => r.message.contains('Created data structures')),
+          isTrue,
+          reason: 'Expected log message containing "Created data structures"',
+        );
+        
+        // Verify the log message format (lines 88-89 create the preview strings)
+        final logMessage = logRecords.firstWhere(
+          (r) => r.message.contains('Created data structures'),
+        ).message;
+        expect(logMessage, contains('from Didl string'));
+      } finally {
+        // Restore original log level
+        Logger.root.level = originalLevel;
+        subscription.cancel();
+      }
+    });
+
+    test('throws error when didlClassToSoCoClass is not set', () {
+      // Temporarily clear the function reference
+      final original = entry.didlClassToSoCoClass;
+      entry.didlClassToSoCoClass = null;
+
+      try {
+        const xmlString = '''<?xml version="1.0"?>
 <DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/"
            xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/"
            xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">
-  <item id="test\x01id" parentID="-1" restricted="true">
+  <item id="test" parentID="-1" restricted="true">
     <dc:title>Test</dc:title>
     <upnp:class>object.item.audioItem.musicTrack</upnp:class>
   </item>
 </DIDL-Lite>''';
 
-      // This should either parse successfully after cleaning or throw
-      // depending on how the XML parser handles it
-      try {
-        final result = fromDidlString(xmlWithControlChar);
-        expect(result, isA<List>());
-      } catch (e) {
-        // If it still fails after cleaning, that's also valid behavior
-        expect(e, isA<Exception>());
+        expect(
+          () => entry.fromDidlString(xmlString),
+          throwsA(
+            isA<DIDLMetadataError>().having(
+              (e) => e.message,
+              'message',
+              contains('didlClassToSoCoClass function not set'),
+            ),
+          ),
+        );
+      } finally {
+        // Restore the original function
+        entry.didlClassToSoCoClass = original;
       }
     });
   });
@@ -219,8 +337,14 @@ void main() {
 
       final element = resource.toElement();
 
-      expect(element.getAttribute('protocolInfo'), equals('http-get:*:audio/mpeg:*'));
-      expect(element.getAttribute('importUri'), equals('http://example.com/import'));
+      expect(
+        element.getAttribute('protocolInfo'),
+        equals('http-get:*:audio/mpeg:*'),
+      );
+      expect(
+        element.getAttribute('importUri'),
+        equals('http://example.com/import'),
+      );
       expect(element.getAttribute('size'), equals('1024000'));
       expect(element.getAttribute('duration'), equals('0:03:45.000'));
       expect(element.getAttribute('bitrate'), equals('320000'));

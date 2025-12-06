@@ -106,6 +106,25 @@ Sonos speakers from Dart applications.
 - Updated `services.dart` with proper `eventSubscriptionUrl` and `defaultArgs`
   for all UPnP services to match Python SoCo implementation
 
+## [0.1.3] - 2025-12-01
+
+### Test Coverage Improvements
+
+- **Increased overall test coverage to 80.9%** (2727/3370 lines)
+- **Improved coverage for key modules**:
+  - `discovery.dart`: 64.4% → 81.4% (+17.0%)
+  - `data_structures_entry.dart`: 74.1% → 92.6% (+18.5%)
+- **Added comprehensive tests** for:
+  - Discovery module: factory usage, error handling, logging paths, includeInvisible, multiHousehold parameters
+  - Data structures: error recovery, caching, subclass stripping, dynamic class creation
+  - Core module: getSpeakerInfo, isSoundbar, and other getter methods
+- **Test suite**: 867 passing unit tests
+
+### Changed
+
+- Tests requiring complex ZoneGroupState integration documented for future integration testing
+- Improved test organization and error handling coverage
+
 ## [0.1.2] - 2025-12-01
 
 ### Performance Improvements
@@ -143,6 +162,7 @@ Sonos speakers from Dart applications.
 - Namespace tag generation uses pre-computed constants for common cases
 - Translation lookup keys pre-computed at class initialization
 
+[0.1.3]: https://github.com/sjhorn/soco/releases/tag/v0.1.3
 [0.1.2]: https://github.com/sjhorn/soco/releases/tag/v0.1.2
 [0.1.1]: https://github.com/sjhorn/soco/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0

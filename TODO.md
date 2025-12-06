@@ -9,8 +9,8 @@
 | Source files | 34 | 32 |
 | Source lines | ~28,000 | ~22,000 |
 | Test files | 20 | 22 |
-| Unit tests | - | 838 |
-| Code coverage | - | 81% |
+| Unit tests | - | 867 |
+| Code coverage | - | 80.9% |
 | Examples | - | 7 |
 | Integration tested | - | ✓ |
 

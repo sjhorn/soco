@@ -290,6 +290,25 @@ void main() {
         capturedRequests.add(request);
         final path = request.url.path;
         final body = request.body;
+        final url = request.url.toString();
+
+        // Device description XML - needed for getSpeakerInfo/uid
+        if (url.contains('/xml/device_description.xml')) {
+          return http.Response(
+            '''<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <device>
+    <roomName>Test Room</roomName>
+    <serialNum>TEST123456</serialNum>
+    <softwareVersion>1.0.0</softwareVersion>
+    <hardwareVersion>1.0</hardwareVersion>
+    <modelNumber>TEST</modelNumber>
+    <modelName>Test Speaker</modelName>
+  </device>
+</root>''',
+            200,
+          );
+        }
 
         // ZoneGroupTopology - for isCoordinator check
         if (path.contains('/ZoneGroupTopology/Control')) {
@@ -381,6 +400,18 @@ void main() {
           if (body.contains('SetAVTransportURI')) {
             return http.Response(
               soapResponse('AVTransport', 'SetAVTransportURI', {}),
+              200,
+            );
+          }
+          if (body.contains('SetPlayMode')) {
+            return http.Response(
+              soapResponse('AVTransport', 'SetPlayMode', {}),
+              200,
+            );
+          }
+          if (body.contains('SetCrossfadeMode')) {
+            return http.Response(
+              soapResponse('AVTransport', 'SetCrossfadeMode', {}),
               200,
             );
           }
@@ -740,6 +771,43 @@ void main() {
     // field from the zone group topology response. These tests are complex
     // to mock properly and are covered by the existing queue playback state
     // capture test above.
+
+    test('restore() restores queue playback with play mode and cross fade', () async {
+      // This test covers lines 235-248 in snapshot.dart
+      // Testing restore of queue playback with play mode and cross fade settings
+      // Note: This requires playFromQueue which needs uid, so we use createMockClient
+      // which sets up the zone group state properly
+      final mockClient = createMockClient(
+        mediaUri: 'x-rincon-queue:RINCON_000E58TEST01400#0',
+        transportState: 'PLAYING',
+      );
+      device.httpClient = mockClient;
+
+      final snapshot = Snapshot(device);
+      await snapshot.snapshot();
+
+      // Verify snapshot captured play mode and cross fade
+      expect(snapshot.playMode, equals('NORMAL'));
+      expect(snapshot.crossFade, isFalse);
+      expect(snapshot.playlistPosition, equals(3));
+
+      capturedRequests.clear();
+
+      // Restore should call setPlayMode and setCrossFade after playFromQueue
+      await snapshot.restore();
+
+      // Verify that SetPlayMode and SetCrossfadeMode were called
+      // (they're called after playFromQueue in the restore flow)
+      final setPlayModeRequests = capturedRequests.where(
+        (r) => r.body.contains('SetPlayMode'),
+      );
+      final setCrossFadeRequests = capturedRequests.where(
+        (r) => r.body.contains('SetCrossfadeMode'),
+      );
+
+      expect(setPlayModeRequests.isNotEmpty, isTrue);
+      expect(setCrossFadeRequests.isNotEmpty, isTrue);
+    }, timeout: Timeout(Duration(seconds: 10)));
 
     test('restore() handles fixed volume device', () async {
       // Create a mock that returns volume=100 and fixedVolume=true

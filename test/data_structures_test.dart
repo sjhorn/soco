@@ -141,6 +141,86 @@ void main() {
       expect(instance, isA<DidlAlbum>());
       expect(instance.effectiveItemClass, equals(unknownClass));
     });
+
+    test('creates factory for unknown audio book extension', () {
+      // Test dynamic factory for DidlAudioBook base
+      final unknownClass = 'object.item.audioItem.audioBook.customExtension';
+      
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlAudioBook));
+      
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      final instance = factory!(
+        title: 'Custom Audio Book',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlAudioBook>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
+
+    test('creates factory for unknown audio line-in extension', () {
+      // Test dynamic factory for DidlAudioLineIn base
+      final unknownClass = 'object.item.audioItem.linein.customExtension';
+      
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlAudioLineIn));
+      
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      final instance = factory!(
+        title: 'Custom Line In',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlAudioLineIn>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
+
+    test('creates factory for unknown item extension', () {
+      // Test dynamic factory for DidlItem base
+      final unknownClass = 'object.item.customExtension';
+      
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlItem));
+      
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      final instance = factory!(
+        title: 'Custom Item',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlItem>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
+
+    test('creates factory for unknown audio item extension', () {
+      // Test dynamic factory for DidlAudioItem base (fallback case)
+      final unknownClass = 'object.item.audioItem.customExtension';
+      
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlAudioItem));
+      
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      final instance = factory!(
+        title: 'Custom Audio Item',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlAudioItem>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
   });
 
   group('DidlResource', () {
@@ -525,6 +605,71 @@ void main() {
 
       expect(result.toString(), contains('SearchResult'));
       expect(result.toString(), contains('albums'));
+    });
+  });
+
+  group('DidlObject.fromElement', () {
+    test('throws error for wrong element tag', () {
+      final xmlString = '''<?xml version="1.0"?>
+<wrongTag id="test" parentID="-1" restricted="true">
+  <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test</dc:title>
+  <upnp:class xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">object.item.audioItem.musicTrack</upnp:class>
+</wrongTag>''';
+      final doc = XmlDocument.parse(xmlString);
+      final element = doc.rootElement;
+
+      expect(
+        () => DidlObject.fromElement(element),
+        throwsA(isA<DIDLMetadataError>().having(
+          (e) => e.message,
+          'message',
+          contains('Wrong element'),
+        )),
+      );
+    });
+
+    test('strips subclass syntax from item class', () {
+      // Test with .# syntax
+      final xmlString1 = '''<?xml version="1.0"?>
+<item id="test" parentID="-1" restricted="true">
+  <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test</dc:title>
+  <upnp:class xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">object.item.audioItem.musicTrack.#subclass</upnp:class>
+</item>''';
+      final doc1 = XmlDocument.parse(xmlString1);
+      final element1 = doc1.rootElement;
+      final result1 = DidlObject.fromElement(element1);
+      expect(result1, isA<DidlMusicTrack>());
+      expect(result1.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
+
+      // Test with # syntax
+      final xmlString2 = '''<?xml version="1.0"?>
+<item id="test" parentID="-1" restricted="true">
+  <dc:title xmlns:dc="http://purl.org/dc/elements/1.1/">Test</dc:title>
+  <upnp:class xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">object.item.audioItem.musicTrack#subclass</upnp:class>
+</item>''';
+      final doc2 = XmlDocument.parse(xmlString2);
+      final element2 = doc2.rootElement;
+      final result2 = DidlObject.fromElement(element2);
+      expect(result2, isA<DidlMusicTrack>());
+      expect(result2.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
+    });
+  });
+
+  group('didlClassToSoCoClass', () {
+    test('handles unknown class with less than 2 parts', () {
+      // A class with only one part (no dots) should return DidlObject
+      final result = didlClassToSoCoClass('unknown');
+      expect(result, equals(DidlObject));
+    });
+
+    test('strips subclass syntax from class name', () {
+      // Test with .# syntax
+      final result1 = didlClassToSoCoClass('object.item.audioItem.musicTrack.#subclass');
+      expect(result1, equals(DidlMusicTrack));
+
+      // Test with # syntax
+      final result2 = didlClassToSoCoClass('object.item.audioItem.musicTrack#subclass');
+      expect(result2, equals(DidlMusicTrack));
     });
   });
 
