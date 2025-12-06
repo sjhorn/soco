@@ -2,7 +2,7 @@
 
 ## Status
 
-**Published:** [soco v0.1.1](https://pub.dev/packages/soco)
+**Published:** [soco v0.1.2](https://pub.dev/packages/soco)
 
 | Metric | Python SoCo | Dart Port |
 |--------|-------------|-----------|
