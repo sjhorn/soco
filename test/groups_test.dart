@@ -163,7 +163,7 @@ void main() {
 
       expect(volume, equals(65));
       expect(capturedRequests.length, equals(2)); // Snapshot + Get
-    });
+      });
 
     test('setVolume sends correct command', () async {
       final mockClient = createMockClient({
@@ -180,7 +180,7 @@ void main() {
 
       expect(capturedRequests.length, equals(2)); // Snapshot + Set
       expect(capturedRequests.last.body, contains('<DesiredVolume>50'));
-    });
+      });
 
     test('setVolume clamps to 0-100 range', () async {
       final mockClient = createMockClient({
@@ -202,7 +202,7 @@ void main() {
       // Test clamping to min
       await group.setVolume(-10);
       expect(capturedRequests.last.body, contains('<DesiredVolume>0'));
-    });
+      });
 
     test('getMute returns mute state', () async {
       final mockClient = createMockClient({
@@ -218,7 +218,7 @@ void main() {
       final muted = await group.mute;
 
       expect(muted, isTrue);
-    });
+      });
 
     test('getMute returns false when not muted', () async {
       final mockClient = createMockClient({
@@ -234,7 +234,7 @@ void main() {
       final muted = await group.mute;
 
       expect(muted, isFalse);
-    });
+      });
 
     test('setMute sends correct command for mute', () async {
       final mockClient = createMockClient({
@@ -250,7 +250,7 @@ void main() {
       await group.setMute(true);
 
       expect(capturedRequests.first.body, contains('<DesiredMute>1'));
-    });
+      });
 
     test('setMute sends correct command for unmute', () async {
       final mockClient = createMockClient({
@@ -266,7 +266,7 @@ void main() {
       await group.setMute(false);
 
       expect(capturedRequests.first.body, contains('<DesiredMute>0'));
-    });
+      });
 
     test('setRelativeVolume adjusts volume', () async {
       final mockClient = createMockClient({
@@ -283,7 +283,7 @@ void main() {
 
       expect(newVolume, equals(55));
       expect(capturedRequests.last.body, contains('<Adjustment>-10'));
-    });
+      });
   });
 
   group('ZoneGroup label methods', () {
@@ -360,7 +360,7 @@ void main() {
 
       // Should be alphabetically sorted
       expect(label, equals('Kitchen, Living Room'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('shortLabel returns first name plus count', () async {
       final zgs = zoneGroupState({
@@ -382,7 +382,7 @@ void main() {
 
       // First alphabetically (Kitchen) + count of remaining
       expect(shortLabel, equals('Kitchen + 1'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('shortLabel for single member group has no count', () async {
       final singleGroup = ZoneGroup(
@@ -407,6 +407,6 @@ void main() {
       final shortLabel = await singleGroup.shortLabel;
 
       expect(shortLabel, equals('Living Room'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 }

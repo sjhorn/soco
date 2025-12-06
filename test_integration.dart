@@ -147,7 +147,7 @@ Future<void> main() async {
       final queue = await device.getQueue(maxItems: 5);
       print('First items in queue:');
       if (queue is Iterable) {
-        for (final item in queue) {
+        for (final item in queue.items) {
           print('  - $item');
         }
       } else {

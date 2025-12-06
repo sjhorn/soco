@@ -360,6 +360,7 @@ void main() {
     });
 
     test('remove deletes alarm from Sonos', () async {
+      // Timeout: 5 seconds for mocked HTTP tests
       var destroyCalled = false;
       mockClient = MockClient((request) async {
         if (request.url.toString().contains('AlarmClock')) {
@@ -389,7 +390,7 @@ void main() {
       expect(destroyCalled, isTrue);
       expect(alarm.alarmId, isNull);
       expect(Alarms().alarms.containsKey('789'), isFalse);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 
   group('Alarms update behavior', () {
@@ -481,7 +482,7 @@ void main() {
       expect(alarmId, equals('456'));
       expect(alarm.alarmId, equals('456'));
       expect(Alarms().alarms.containsKey('456'), isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save updates existing alarm', () async {
       var updateCalled = false;
@@ -524,7 +525,7 @@ void main() {
       await alarm.save();
       expect(updateCalled, isTrue);
       expect(alarm.alarmId, equals('existing123'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save with null duration sends empty duration', () async {
       mockClient = MockClient((request) async {
@@ -559,7 +560,7 @@ void main() {
       final alarm = Alarm(zone, duration: null);
       await alarm.save();
       expect(alarm.alarmId, equals('789'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save with null programUri sends buzzer URI', () async {
       mockClient = MockClient((request) async {
@@ -593,7 +594,7 @@ void main() {
 
       final alarm = Alarm(zone, programUri: null);
       await alarm.save();
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save with custom programUri sends that URI', () async {
       mockClient = MockClient((request) async {
@@ -627,7 +628,7 @@ void main() {
 
       final alarm = Alarm(zone, programUri: 'x-rincon-playlist:123');
       await alarm.save();
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save updates lastAlarmListVersion when sequential', () async {
       mockClient = MockClient((request) async {
@@ -668,7 +669,7 @@ void main() {
       // When the new ID (6) is exactly lastId + 1, the version is updated
       expect(alarms.lastId, equals(6));
       expect(alarms.lastAlarmListVersion, equals('RINCON_TEST:6'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('save with disabled alarm sends Enabled=0', () async {
       mockClient = MockClient((request) async {
@@ -702,7 +703,7 @@ void main() {
 
       final alarm = Alarm(zone, enabled: false);
       await alarm.save();
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 
   group('Alarms.update with mocked HTTP', () {

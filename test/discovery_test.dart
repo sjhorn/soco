@@ -44,7 +44,7 @@ void main() {
         () => discover(interfaceAddr: 'not-an-ip'),
         throwsA(isA<ArgumentError>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('accepts valid IPv4 interface address format', () async {
       // This will fail to create socket but shouldn't throw ArgumentError
@@ -55,14 +55,14 @@ void main() {
       );
       // Either null (no response) or a set (unlikely without real network)
       expect(result, anyOf(isNull, isA<Set<SoCo>>()));
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
 
     test('returns null on timeout with no devices', () async {
       // Short timeout, unlikely to find devices
       final result = await discover(timeout: 1);
       // Could be null or a set depending on actual network
       expect(result, anyOf(isNull, isA<Set<SoCo>>()));
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
   });
 
   group('anySoco', () {
@@ -78,7 +78,7 @@ void main() {
       // Result is null since we can't actually verify visibility
       // without network, or it might find a real device
       expect(result, anyOf(isNull, isA<SoCo>()));
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
   });
 
   group('byName', () {
@@ -86,7 +86,7 @@ void main() {
       final result = await byName('NonExistentDevice');
       // Will return null since discovery won't find anything
       expect(result, isNull);
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
   });
 
   group('scanNetwork', () {
@@ -100,7 +100,7 @@ void main() {
 
       // Should return null or empty set
       expect(result == null || result.isEmpty, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
 
     test('handles invalid network CIDR notation', () async {
       // Invalid networks should be skipped, not cause errors
@@ -113,7 +113,7 @@ void main() {
 
       // Both networks are invalid, so no IPs to scan -> null
       expect(result, isNull);
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
 
     test('respects maxThreads parameter', () async {
       // Just verify it doesn't crash with various maxThreads values
@@ -124,7 +124,7 @@ void main() {
       );
 
       expect(result, anyOf(isNull, isA<Set<SoCo>>()));
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
 
     test('empty networksToScan list returns null', () async {
       final result = await scanNetwork(
@@ -133,7 +133,7 @@ void main() {
       );
 
       expect(result, isNull);
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
   });
 
   group('scanNetworkByHouseholdId', () {
@@ -145,7 +145,7 @@ void main() {
       );
 
       expect(result == null || result.isEmpty, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 10))); // Longer timeout for network discovery
   });
 
   group('socoClassFactory configuration', () {

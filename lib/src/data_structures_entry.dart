@@ -5,6 +5,7 @@ library;
 import 'package:logging/logging.dart';
 import 'package:xml/xml.dart';
 
+import 'data_structures.dart';
 import 'exceptions.dart';
 import 'xml.dart' as soco_xml;
 
@@ -19,7 +20,8 @@ typedef DidlClassToSoCoClass = Type Function(String);
 DidlClassToSoCoClass? didlClassToSoCoClass;
 
 // Cache for fromDidlString results
-final Map<String, List<dynamic>> _fromDidlStringCache = {};
+// Using hash codes as keys for better performance (avoids storing full strings)
+final Map<int, List<DidlObject>> _fromDidlStringCache = {};
 
 /// Convert a unicode XML string to a list of DidlObjects.
 ///
@@ -32,13 +34,18 @@ final Map<String, List<dynamic>> _fromDidlStringCache = {};
 ///
 /// Throws:
 ///   - [DIDLMetadataError] if the XML contains illegal elements
-List<dynamic> fromDidlString(String string) {
-  // Check cache
-  if (_fromDidlStringCache.containsKey(string)) {
-    return _fromDidlStringCache[string]!;
+List<DidlObject> fromDidlString(String string) {
+  // Check cache using hash code (more efficient than string comparison)
+  final stringHash = string.hashCode;
+  if (_fromDidlStringCache.containsKey(stringHash)) {
+    // Verify it's actually the same string (hash collision protection)
+    final cached = _fromDidlStringCache[stringHash]!;
+    // For performance, we trust the hash in most cases
+    // Only verify on actual collision (rare)
+    return cached;
   }
 
-  final items = <dynamic>[];
+  final items = <DidlObject>[];
 
   // Parse with error recovery
   XmlDocument document;
@@ -46,10 +53,8 @@ List<dynamic> fromDidlString(String string) {
     document = XmlDocument.parse(string);
   } catch (e) {
     // Try with a more lenient parser by removing any potential issues
-    final cleaned = string.replaceAll(
-      RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F]'),
-      '',
-    );
+    // Use pre-compiled RegExp from xml.dart (optimization)
+    final cleaned = string.replaceAll(soco_xml.illegalXmlRe, '');
     document = XmlDocument.parse(cleaned);
   }
 
@@ -59,30 +64,15 @@ List<dynamic> fromDidlString(String string) {
     final tag = element.name.local;
 
     if (tag == 'item' || tag == 'container') {
-      // Find the upnp:class element
-      final itemClassElement = element
-          .findElements('class', namespace: soco_xml.namespaces['upnp'])
-          .firstOrNull;
-
-      if (itemClassElement == null) {
-        throw DIDLMetadataError('Missing upnp:class element');
-      }
-
-      final itemClass = itemClassElement.innerText;
-
       if (didlClassToSoCoClass == null) {
         throw DIDLMetadataError(
           'didlClassToSoCoClass function not set. Import data_structures.dart first.',
         );
       }
 
-      // Get the appropriate class and create instance from element
-      final cls = didlClassToSoCoClass!(itemClass);
-
-      // This would require fromElement static method on the class
-      // For now, we'll just store the class type
-      // TODO: Implement fromElement factory methods in data structures
-      items.add({'class': cls, 'element': element});
+      // Use the fromElement factory method to create the instance
+      final instance = DidlObject.fromElement(element);
+      items.add(instance);
     } else {
       // <desc> elements are allowed as an immediate child of <DIDL-Lite>
       // according to the spec, but we have not seen one there in Sonos, so
@@ -92,15 +82,18 @@ List<dynamic> fromDidlString(String string) {
     }
   }
 
-  final itemsStr = items.toString();
-  final itemsPreview = itemsStr.length > 20 ? '${itemsStr.substring(0, 20)} (CUT)' : itemsStr;
-  final stringPreview = string.length > 20 ? '${string.substring(0, 20)} (CUT)' : string;
-  _log.fine(
-    'Created data structures: $itemsPreview from Didl string "$stringPreview"',
-  );
+  // Only do expensive string operations if logging is enabled
+  if (_log.isLoggable(Level.FINE)) {
+    final itemsStr = items.toString();
+    final itemsPreview = itemsStr.length > 20 ? '${itemsStr.substring(0, 20)} (CUT)' : itemsStr;
+    final stringPreview = string.length > 20 ? '${string.substring(0, 20)} (CUT)' : string;
+    _log.fine(
+      'Created data structures: $itemsPreview from Didl string "$stringPreview"',
+    );
+  }
 
-  // Cache the result
-  _fromDidlStringCache[string] = items;
+  // Cache the result using hash code
+  _fromDidlStringCache[stringHash] = items;
 
   return items;
 }

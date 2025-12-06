@@ -46,7 +46,7 @@ void main() {
       // Wait another 2 seconds (total 4s), should be expired (timeout was 3s)
       await Future.delayed(const Duration(seconds: 2));
       expect(cache.get(['some'], {'kw': 'args'}), isNot(equals('item')));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('put and get items with positional and keyword arguments', () {
       final cache = Cache.create();
@@ -62,7 +62,7 @@ void main() {
         cache.get(['some', 'otherargs'], {'and_a': 'keyword'}),
         isNot(equals('item')),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('delete removes items from cache', () {
       final cache = Cache.create();

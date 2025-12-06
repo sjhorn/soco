@@ -5,6 +5,7 @@ import 'package:test/test.dart';
 import 'package:http/testing.dart';
 import 'package:http/http.dart' as http;
 import 'package:soco/src/core.dart';
+import 'package:soco/src/data_structures.dart';
 import 'helpers/mock_http.dart';
 
 void main() {
@@ -1621,8 +1622,8 @@ void main() {
       soco.httpClient = mockClient;
 
       final queue = await soco.getQueue();
-      expect(queue, isA<Map>());
-      expect(queue['metadata']['number_returned'], equals(0));
+      expect(queue, isA<QueueResult>());
+      expect(queue.numberReturned, equals(0));
     });
 
     test('clearQueue sends RemoveAllTracksFromQueue command', () async {

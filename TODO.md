@@ -78,29 +78,42 @@
 ### Code TODOs
 
 **Core Module** (`lib/src/core.dart`):
-- Voice assistant methods (placeholder): `voiceServiceConfigured`, `micEnabled`, `setMicEnabled`
-- Playlist/favorites methods (~20 methods): `getSonosPlaylists`, `createSonosPlaylist`, etc.
-- Enhanced radio/DIDL metadata parsing
-- More robust queue item metadata extraction
+- ~~Voice assistant methods (placeholder): `voiceServiceConfigured`, `micEnabled`, `setMicEnabled`~~ ✓
+- ~~Playlist/favorites methods (~20 methods): `getSonosPlaylists`, `createSonosPlaylist`, etc.~~ ✓
+- ~~Enhanced radio/DIDL metadata parsing~~ ✓
+- ~~More robust queue item metadata extraction~~ ✓
 
 **Services Module** (`lib/src/services.dart`):
-- Full SCPD document parsing for service introspection
+- ~~Full SCPD document parsing for service introspection~~ ✓
 
 **Data Structures** (`lib/src/data_structures.dart`):
-- Dynamic class creation for unknown DIDL types
+- ~~Dynamic class creation for unknown DIDL types~~ ✓
+- ~~Implement fromElement factory methods in data structures~~ ✓
 
 **Music Services** (`lib/src/music_services/music_service.dart`):
-- Improved XML response parsing
+- ~~Improved XML response parsing~~ ✓
 
 ### Deferred
 
-- Performance benchmarking
+- ~~Performance benchmarking~~ ✓ (benchmark script created)
 
 ### Completed
 
 - ✓ Integration tests with real Sonos devices (v0.1.1)
 - ✓ Fixed UPnP service control URLs for real hardware compatibility
 - ✓ Fixed getSpeakerInfo caching with ZoneGroupState data
+- ✓ Implemented voice assistant methods: `voiceServiceConfigured`, `micEnabled`, `setMicEnabled` (placeholder)
+- ✓ Implemented playlist/favorites methods (11 methods)
+- ✓ Enhanced DIDL metadata parsing in `getCurrentTrackInfo()` and `getCurrentMediaInfo()`
+- ✓ Enhanced `getQueue()` to parse DIDL strings and return proper QueueResult with items
+- ✓ Fixed zonegroupstate test timeout issue with proper async exception testing
+- ✓ Implemented SCPD document parsing for service introspection (actions and event variables)
+- ✓ Improved XML response parsing in music services (converts XmlElement to Map structure)
+- ✓ Implemented dynamic class creation for unknown DIDL types (registry pattern with factory functions)
+- ✓ Implemented fromElement factory methods in all DIDL classes - fromDidlString now returns proper DidlObject instances
+- ✓ Refactored playUri() and addUriToQueue() to use proper DidlResource and DidlObject instead of manual XML strings
+- ✓ Created performance benchmarking script (benchmark/benchmark.dart) - measures DIDL parsing, object creation, and serialization performance
+- ✓ Fixed data_structures_entry_test.dart - updated tests to expect DidlObject instances instead of Maps after fromElement implementation
 
 *Note: Coverage target of 80% achieved! Integration testing with real Sonos hardware validated all core functionality.
 

@@ -39,7 +39,43 @@ final RegExp illegalXmlRe = RegExp(
 /// nsTag('dc', 'author')
 /// // Returns: '{http://purl.org/dc/elements/1.1/}author'
 /// ```
+// Pre-computed namespace tags for common cases (optimization)
+const Map<String, Map<String, String>> _precomputedNsTags = {
+  'dc': {
+    'title': '{http://purl.org/dc/elements/1.1/}title',
+    'creator': '{http://purl.org/dc/elements/1.1/}creator',
+  },
+  'upnp': {
+    'class': '{urn:schemas-upnp-org:metadata-1-0/upnp/}class',
+    'artist': '{urn:schemas-upnp-org:metadata-1-0/upnp/}artist',
+    'album': '{urn:schemas-upnp-org:metadata-1-0/upnp/}album',
+  },
+};
+
+/// Return a namespace/tag item.
+///
+/// The [nsId] is translated to a full namespace via the [namespaces]
+/// constant.
+///
+/// Parameters:
+///   - [nsId]: A namespace id, e.g., "dc" (see [namespaces])
+///   - [tag]: An XML tag, e.g., "author"
+///
+/// Returns:
+///   A fully qualified tag.
+///
+/// Example:
+/// ```dart
+/// nsTag('dc', 'author')
+/// // Returns: '{http://purl.org/dc/elements/1.1/}author'
+/// ```
 String nsTag(String nsId, String tag) {
+  // Check pre-computed cache first (common cases)
+  final precomputed = _precomputedNsTags[nsId]?[tag];
+  if (precomputed != null) {
+    return precomputed;
+  }
+
   final namespace = namespaces[nsId];
   if (namespace == null) {
     throw ArgumentError('Unknown namespace ID: $nsId');

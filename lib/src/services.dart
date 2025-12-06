@@ -522,11 +522,175 @@ class Service {
       return _actions!;
     }
 
-    // This would need to fetch and parse the service description XML
-    // For now, return an empty list as this requires more infrastructure
-    // TODO: Implement SCPD parsing
-    _actions = [];
+    // Fetch and parse the service description XML (SCPD)
+    _actions = await _parseScpdActions();
     return _actions!;
+  }
+
+  /// Parse SCPD document to extract actions.
+  Future<List<Action>> _parseScpdActions() async {
+    final actions = <Action>[];
+
+    try {
+      // Fetch the SCPD XML document
+      final scpdUri = Uri.parse('$baseUrl$scpdUrl');
+      final client = httpClient ?? http.Client();
+      final response = await client
+          .get(scpdUri)
+          .timeout(Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        _log.warning(
+          'Failed to fetch SCPD document: ${response.statusCode}',
+        );
+        return actions;
+      }
+
+      // Parse the XML
+      final document = xml.XmlDocument.parse(response.body);
+      final root = document.rootElement;
+
+      // Namespace for UPnP service-1-0
+      const ns = 'urn:schemas-upnp-org:service-1-0';
+
+      // First, parse state variables to build a map of variable types
+      final vartypes = <String, Vartype>{};
+      final stateTables = root.findAllElements(
+        'serviceStateTable',
+        namespace: ns,
+      );
+
+      for (final stateTable in stateTables) {
+        final stateVars = stateTable.findElements(
+          'stateVariable',
+          namespace: ns,
+        );
+
+        for (final state in stateVars) {
+          final name = state
+                  .findElements('name', namespace: ns)
+                  .firstOrNull
+                  ?.innerText ??
+              '';
+          final datatype = state
+                  .findElements('dataType', namespace: ns)
+                  .firstOrNull
+                  ?.innerText ??
+              'string';
+          final defaultValue = state
+              .findElements('defaultValue', namespace: ns)
+              .firstOrNull
+              ?.innerText;
+
+          // Parse allowed value list
+          final allowedValueList = state
+              .findElements('allowedValueList', namespace: ns)
+              .firstOrNull;
+          List<String>? allowedValues;
+          if (allowedValueList != null) {
+            allowedValues = allowedValueList
+                .findElements('allowedValue', namespace: ns)
+                .map((e) => e.innerText)
+                .toList();
+          }
+
+          // Parse allowed value range
+          final allowedValueRange = state
+              .findElements('allowedValueRange', namespace: ns)
+              .firstOrNull;
+          List<int>? range;
+          if (allowedValueRange != null) {
+            final minimum = allowedValueRange
+                .findElements('minimum', namespace: ns)
+                .firstOrNull
+                ?.innerText;
+            final maximum = allowedValueRange
+                .findElements('maximum', namespace: ns)
+                .firstOrNull
+                ?.innerText;
+            if (minimum != null && maximum != null) {
+              range = [
+                int.tryParse(minimum) ?? 0,
+                int.tryParse(maximum) ?? 0,
+              ];
+            }
+          }
+
+          vartypes[name] = Vartype(
+            datatype: datatype,
+            defaultValue: defaultValue,
+            allowedValues: allowedValues,
+            range: range,
+          );
+        }
+      }
+
+      // Now parse actions
+      final actionLists = root.findAllElements('actionList', namespace: ns);
+      for (final actionList in actionLists) {
+        final actionElements = actionList.findElements('action', namespace: ns);
+
+        for (final actionEl in actionElements) {
+          final actionName = actionEl
+                  .findElements('name', namespace: ns)
+                  .firstOrNull
+                  ?.innerText ??
+              '';
+
+          final inArgs = <Argument>[];
+          final outArgs = <Argument>[];
+
+          final argumentLists = actionEl.findElements(
+            'argumentList',
+            namespace: ns,
+          );
+
+          for (final argList in argumentLists) {
+            final arguments = argList.findElements('argument', namespace: ns);
+
+            for (final arg in arguments) {
+              final argName = arg
+                      .findElements('name', namespace: ns)
+                      .firstOrNull
+                      ?.innerText ??
+                  '';
+              final direction = arg
+                      .findElements('direction', namespace: ns)
+                      .firstOrNull
+                      ?.innerText ??
+                  '';
+              final relatedVar = arg
+                      .findElements('relatedStateVariable', namespace: ns)
+                      .firstOrNull
+                      ?.innerText ??
+                  '';
+
+              final vartype = vartypes[relatedVar] ??
+                  Vartype(datatype: 'string'); // Default fallback
+
+              final argument = Argument(name: argName, vartype: vartype);
+
+              if (direction == 'in') {
+                inArgs.add(argument);
+              } else {
+                outArgs.add(argument);
+              }
+            }
+          }
+
+          actions.add(Action(
+            name: actionName,
+            inArgs: inArgs,
+            outArgs: outArgs,
+          ));
+        }
+      }
+    } catch (e) {
+      _log.warning('Error parsing SCPD document: $e');
+      // Return empty list on error
+    }
+
+    return actions;
   }
 
   /// Iterate over available actions.
@@ -540,17 +704,70 @@ class Service {
   /// Get the event variables for this service.
   ///
   /// Returns:
-  ///   A map of event variable names to their properties
+  ///   A map of event variable names to their data types
   Future<Map<String, dynamic>> get eventVars async {
     if (_eventVars != null) {
       return _eventVars!;
     }
 
-    // This would need to fetch and parse the service description XML
-    // For now, return an empty map
-    // TODO: Implement SCPD parsing
-    _eventVars = {};
+    // Fetch and parse the service description XML (SCPD)
+    _eventVars = await _parseScpdEventVars();
     return _eventVars!;
+  }
+
+  /// Parse SCPD document to extract event variables.
+  Future<Map<String, dynamic>> _parseScpdEventVars() async {
+    final eventVars = <String, dynamic>{};
+
+    try {
+      // Fetch the SCPD XML document
+      final scpdUri = Uri.parse('$baseUrl$scpdUrl');
+      final client = httpClient ?? http.Client();
+      final response = await client
+          .get(scpdUri)
+          .timeout(Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        _log.warning(
+          'Failed to fetch SCPD document: ${response.statusCode}',
+        );
+        return eventVars;
+      }
+
+      // Parse the XML
+      final document = xml.XmlDocument.parse(response.body);
+      final root = document.rootElement;
+
+      // Namespace for UPnP service-1-0
+      const ns = 'urn:schemas-upnp-org:service-1-0';
+
+      // Find all state variables with sendEvents="yes"
+      final stateVars = root.findAllElements('stateVariable', namespace: ns);
+
+      for (final state in stateVars) {
+        // Check if sendEvents attribute is "yes"
+        final sendEvents = state.getAttribute('sendEvents');
+        if (sendEvents == 'yes') {
+          final name = state
+                  .findElements('name', namespace: ns)
+                  .firstOrNull
+                  ?.innerText ??
+              '';
+          final datatype = state
+                  .findElements('dataType', namespace: ns)
+                  .firstOrNull
+                  ?.innerText ??
+              'string';
+
+          eventVars[name] = datatype;
+        }
+      }
+    } catch (e) {
+      _log.warning('Error parsing SCPD event variables: $e');
+      // Return empty map on error
+    }
+
+    return eventVars;
   }
 
   /// Subscribe to events from this service.

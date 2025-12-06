@@ -5,6 +5,8 @@
 /// `music_service` module.
 library;
 
+import 'package:xml/xml.dart';
+
 import 'core.dart';
 import 'data_structures.dart';
 import 'data_structures_entry.dart';
@@ -78,11 +80,102 @@ class MusicLibrary {
     return url;
   }
 
+  /// Convert a Map representation from fromDidlString to a DidlObject.
+  ///
+  /// This handles the incomplete fromDidlString implementation that returns
+  /// Maps instead of DidlObject instances.
+  /// 
+  /// This is public so it can be used by SoCo.getQueue().
+  DidlObject mapToDidlObject(Map<String, dynamic> itemMap) {
+    final cls = itemMap['class'] as Type;
+    final element = itemMap['element'] as XmlElement;
+    
+    // Extract common attributes
+    final titleEl = element
+        .findElements('title', namespace: 'http://purl.org/dc/elements/1.1/')
+        .firstOrNull;
+    final title = titleEl?.innerText ?? '';
+    final id = element.getAttribute('id') ?? '';
+    final parentId = element.getAttribute('parentID') ?? '';
+    final restricted = element.getAttribute('restricted') == 'true';
+    
+    // Extract resources
+    final resources = <DidlResource>[];
+    for (final resEl in element.findElements('res')) {
+      final uri = resEl.innerText;
+      final protocolInfo = resEl.getAttribute('protocolInfo') ?? '';
+      if (uri.isNotEmpty && protocolInfo.isNotEmpty) {
+        resources.add(DidlResource(uri: uri, protocolInfo: protocolInfo));
+      }
+    }
+    
+    // Create the appropriate DidlObject instance based on class type
+    if (cls == DidlPlaylistContainer) {
+      return DidlPlaylistContainer(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else if (cls == DidlMusicAlbum) {
+      return DidlMusicAlbum(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else if (cls == DidlMusicArtist) {
+      return DidlMusicArtist(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else if (cls == DidlAlbum) {
+      return DidlAlbum(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else if (cls == DidlPerson) {
+      return DidlPerson(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else if (cls == DidlContainer) {
+      return DidlContainer(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    } else {
+      // Fallback to base DidlObject
+      return DidlObject(
+        title: title,
+        parentId: parentId,
+        itemId: id,
+        restricted: restricted,
+        resources: resources,
+      );
+    }
+  }
+
   /// Update an item's Album Art URI to be an absolute URI.
   ///
   /// Parameters:
   ///   - [item]: The item to update the URI for
-  void _updateAlbumArtToFullUri(DidlObject item) {
+  /// Update album art URI to full URI (public for use by SoCo.getQueue).
+  void updateAlbumArtToFullUri(DidlObject item) {
     // Album art URI is stored in the metadata map
     final albumArtUri = item['album_art_uri'] as String?;
     if (albumArtUri != null) {
@@ -453,7 +546,7 @@ class MusicLibrary {
       for (final item in items) {
         // Check if the album art URI should be fully qualified
         if (fullAlbumArtUri) {
-          _updateAlbumArtToFullUri(item);
+          updateAlbumArtToFullUri(item);
         }
         // Append the item to the list
         itemList.add(item);
@@ -540,7 +633,7 @@ class MusicLibrary {
     for (final container in containers) {
       // Check if the album art URI should be fully qualified
       if (fullAlbumArtUri) {
-        _updateAlbumArtToFullUri(container);
+        updateAlbumArtToFullUri(container);
       }
       itemList.add(container);
     }

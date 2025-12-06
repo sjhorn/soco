@@ -171,9 +171,6 @@ class WimpPlugin extends SoCoPlugin {
   /// The session ID for authenticated requests
   String _sessionId;
 
-  /// The MusicServices instance
-  MusicServices? _musicServices;
-
   /// Whether the plugin has been initialized
   bool _initialized = false;
 
@@ -237,7 +234,6 @@ class WimpPlugin extends SoCoPlugin {
     _serialNumber = speakerInfo['serial_number'] ?? '';
 
     final musicServices = MusicServices(soco as SoCo);
-    _musicServices = musicServices;
     final response = await musicServices.sendCommand(
       'GetSessionId',
       args: [

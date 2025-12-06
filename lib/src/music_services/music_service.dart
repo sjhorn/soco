@@ -36,6 +36,81 @@ import 'token_store.dart';
 
 final _log = Logger('soco.music_services.music_service');
 
+/// Convert an XML element to a Map structure, similar to Python's xmltodict.parse().
+///
+/// This function converts XML elements to nested Maps, handling:
+/// - Element names as keys (with namespace prefixes stripped if matching the provided namespace)
+/// - Text content as values
+/// - Child elements as nested maps
+/// - Multiple elements with the same name as lists
+///
+/// Parameters:
+///   - [element]: The XML element to convert
+///   - [namespace]: The namespace URI to strip from element names (optional)
+///
+/// Returns:
+///   A Map representation of the XML structure
+Map<String, dynamic> _xmlElementToMap(XmlElement element, String? namespace) {
+  // Get the local name (without namespace prefix)
+  String localName = element.name.local;
+
+  // If namespace is provided and matches, we've already got the local name
+  // Otherwise, we might need to handle namespace prefixes
+  final elementNamespace = element.name.namespaceUri;
+  if (namespace != null &&
+      elementNamespace == namespace &&
+      (element.name.prefix?.isNotEmpty ?? false)) {
+    // Already using local name, which is correct
+  }
+
+  // Process child elements
+  final children = element.childElements;
+  final textContent = element.innerText.trim();
+
+  if (children.isEmpty) {
+    // Leaf element - return text content or empty string
+    return {localName: textContent.isEmpty ? null : textContent};
+  }
+
+  // Process child elements
+  final childMap = <String, dynamic>{};
+  final childCounts = <String, int>{};
+
+  for (final child in children) {
+    final childLocalName = child.name.local;
+    childCounts[childLocalName] = (childCounts[childLocalName] ?? 0) + 1;
+  }
+
+  for (final child in children) {
+    final childLocalName = child.name.local;
+    final childValue = _xmlElementToMap(child, namespace);
+
+    // If there are multiple children with the same name, make it a list
+    if (childCounts[childLocalName]! > 1) {
+      if (!childMap.containsKey(childLocalName)) {
+        childMap[childLocalName] = <dynamic>[];
+      }
+      // Extract the value from the child map (which has the element name as key)
+      final childData = childValue[childLocalName];
+      (childMap[childLocalName] as List).add(childData);
+    } else {
+      // Single child - extract the value from the child map
+      childMap[childLocalName] = childValue[childLocalName];
+    }
+  }
+
+  // If there's text content along with children, include it
+  if (textContent.isNotEmpty && childMap.isNotEmpty) {
+    childMap['#text'] = textContent;
+  } else if (textContent.isNotEmpty) {
+    // Only text content, no children
+    return {localName: textContent};
+  }
+
+  // Return map with element name as key
+  return {localName: childMap.isEmpty ? null : childMap};
+}
+
 /// A SOAP client for accessing Music Services.
 ///
 /// This class handles all the necessary authentication for accessing
@@ -200,10 +275,18 @@ class MusicServiceSoapClient {
     try {
       final resultElt = await message.call();
 
-      // Convert to Map
-      // TODO: Implement proper XML to Map conversion
-      // For now, return a placeholder
-      return {'result': resultElt.toXmlString()};
+      // Convert XML element to Map
+      final resultMap = _xmlElementToMap(resultElt, namespace);
+
+      // The top key in the map will be the methodResult. Its value may be null
+      // if no results were returned. Extract the first value from the map.
+      if (resultMap.isEmpty) {
+        return {};
+      }
+
+      // Get the first value from the result map (similar to Python's .values()[0])
+      final firstValue = resultMap.values.first;
+      return firstValue is Map<String, dynamic> ? firstValue : {};
     } on SoapFault catch (exc) {
       if (exc.faultcode.contains('Client.AuthTokenExpired')) {
         throw MusicServiceAuthException(

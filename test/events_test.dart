@@ -416,7 +416,7 @@ void main() {
       expect(events.length, equals(1));
       expect(events[0].sid, equals('sid'));
       expect(events[0].variables['test'], equals('value'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('sendEvent does nothing when stream is closed', () async {
       MockSubscription(MockService());
@@ -435,7 +435,7 @@ void main() {
       // This should not throw
       final event = Event('sid', '1', MockService(), 123456.7);
       sub2.sendEvent(event);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('autoRenewCancel cancels timer', () {
       final sub = MockSubscription(MockService());
@@ -448,7 +448,7 @@ void main() {
 
       // No exception should occur
       expect(true, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('cancelSubscription unregisters and stops listener when no subs left', () async {
       final eventListener = MockEventListener();
@@ -468,7 +468,7 @@ void main() {
       expect(eventListener.stopCalled, isTrue);
       expect(sub.isSubscribed, isFalse);
       expect(sub.hasBeenUnsubscribed, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('cancelSubscription does nothing if already unsubscribed', () async {
       final eventListener = MockEventListener();
@@ -484,14 +484,14 @@ void main() {
 
       // Should return early without modifying state
       expect(sub.hasBeenUnsubscribed, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('dispose calls unsubscribe', () async {
       final sub = MockSubscription(MockService());
 
       // Should not throw
       await sub.dispose();
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('creates broadcast stream by default', () {
       final sub = MockSubscription(MockService());
@@ -501,7 +501,7 @@ void main() {
       sub.events.listen((_) {});
 
       expect(true, isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 
   group('EventNotifyHandlerBase', () {
@@ -546,7 +546,7 @@ void main() {
       expect(receivedEvents[0].seq, equals('42'));
       expect(receivedEvents[0].sid, equals('test-sid-notify'));
       expect(receivedEvents[0]['test_var'], equals('TestValue'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('handleNotification handles missing subscription gracefully', () {
       final subscriptionsMap = SubscriptionsMap();
@@ -600,7 +600,7 @@ void main() {
 
       expect(receivedEvents.length, equals(1));
       expect(receivedEvents[0].seq, equals('99'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 
   group('EventListenerBase', () {
@@ -610,7 +610,7 @@ void main() {
       expect(listener.isRunning, isFalse);
       expect(listener.address, isNull);
       expect(listener.requestedPortNumber, equals(1400)); // Default from config
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 
   group('parseEventXml edge cases', () {

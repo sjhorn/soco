@@ -9,9 +9,12 @@ import 'package:logging/logging.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
+import 'data_structures.dart';
+import 'data_structures_entry.dart';
 import 'exceptions.dart';
 import 'music_library.dart';
 import 'services.dart';
+import 'xml.dart' as soco_xml;
 import 'zonegroupstate.dart';
 
 final _log = Logger('soco.core');
@@ -98,12 +101,12 @@ const List<String> soundbars = [
   'sonos amp',
 ];
 
-const String arcUltraProductName = 'arc ultra';
-
-/// Constants for favorites
+/// Favorite type constants
 const int radioStations = 0;
 const int radioShows = 1;
 const int sonosFavorites = 2;
+
+const String arcUltraProductName = 'arc ultra';
 
 /// Cache for SoCo instances (singleton pattern)
 final Map<String, SoCo> _socoInstances = {};
@@ -688,23 +691,17 @@ class SoCo {
     var finalUri = uri;
 
     if (meta.isEmpty && title.isNotEmpty) {
-      const metaTemplate =
-          '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements'
-          '/1.1/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
-          'xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" '
-          'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
-          '<item id="R:0/0/0" parentID="R:0/0" restricted="true">'
-          '<dc:title>{title}</dc:title><upnp:class>'
-          'object.item.audioItem.audioBroadcast</upnp:class><desc '
-          'id="cdudn" nameSpace="urn:schemas-rinconnetworks-com:'
-          'metadata-1-0/">{service}</desc></item></DIDL-Lite>';
+      // Create proper DIDL object for radio broadcast
       const tuneinService = 'SA_RINCON65031_';
-
-      // Radio stations need to have at least a title to play
-      final escapedTitle = _xmlEscape(title);
-      finalMeta = metaTemplate
-          .replaceAll('{title}', escapedTitle)
-          .replaceAll('{service}', tuneinService);
+      final broadcast = DidlAudioBroadcast(
+        title: title,
+        parentId: 'R:0/0',
+        itemId: 'R:0/0/0',
+        restricted: true,
+        resources: [],
+        desc: tuneinService,
+      );
+      finalMeta = toDidlString([broadcast]);
     }
 
     // Change URI prefix to force radio style display and commands
@@ -1017,16 +1014,6 @@ class SoCo {
     return int.parse(response['NewVolume'] ?? '0');
   }
 
-  /// Simple XML escape helper
-  String _xmlEscape(String text) {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&apos;');
-  }
-
   /// Convert camelCase to snake_case
   String _camelToUnderscore(String text) {
     return text
@@ -1164,20 +1151,167 @@ class SoCo {
     track['position'] = response['RelTime'] ?? '0:00:00';
 
     final metadata = response['TrackMetaData'];
+    
+    // Store the entire Metadata entry in the track, this can then be
+    // used if needed by the client to restart a given URI
+    track['metadata'] = metadata;
 
-    // Duration seems to be '0:00:00' when listening to radio
-    if (track['duration'] == '0:00:00' &&
-        metadata != null &&
-        metadata.isNotEmpty) {
-      // TODO: Parse radio metadata
-      // This would require XML parsing of the metadata
+    // Helper function to check if title contains URI components
+    bool titleInUri(String? title) {
+      if (title == null || title.isEmpty) {
+        return false;
+      }
+      
+      final musicSource = musicSourceFromUri(track['uri'] as String);
+      if (musicSource == 'LIBRARY') {
+        return false;
+      }
+      
+      final uri = track['uri'] as String;
+      final decodedUri = Uri.decodeComponent(uri);
+      return title.contains(uri) || title.contains(decodedUri);
     }
 
-    if (metadata != null &&
-        metadata.isNotEmpty &&
-        metadata != 'NOT_IMPLEMENTED') {
-      // TODO: Parse DIDL metadata to extract title, artist, album, album_art
-      // This requires XML parsing which we'll implement when needed
+    // Helper function to parse radio metadata
+    Map<String, String> parseRadioMetadata(XmlElement metadataElement) {
+      final radioTrack = <String, String>{};
+      
+      // Find streamContent element
+      final streamContentEl = metadataElement
+          .findElements('streamContent',
+              namespace: soco_xml.namespaces['r'])
+          .firstOrNull;
+      final trackinfo = streamContentEl?.innerText ?? '';
+      
+      final index = trackinfo.indexOf(' - ');
+      
+      if (trackinfo.contains('TYPE=SNG|')) {
+        // Examples from services:
+        //  Apple Music radio:
+        //   "TYPE=SNG|TITLE Couleurs|ARTIST M83|ALBUM Saturdays = Youth"
+        //  SiriusXM:
+        //   "BR P|TYPE=SNG|TITLE 7.15.17 LA|ARTIST Eagles|ALBUM "
+        final tags = <String, String>{};
+        for (final part in trackinfo.split('|')) {
+          if (part.contains(' ')) {
+            final spaceIndex = part.indexOf(' ');
+            final key = part.substring(0, spaceIndex);
+            final value = part.substring(spaceIndex + 1);
+            tags[key] = value;
+          }
+        }
+        
+        if (tags.containsKey('TITLE')) {
+          radioTrack['title'] = tags['TITLE']!;
+        }
+        if (tags.containsKey('ARTIST')) {
+          radioTrack['artist'] = tags['ARTIST']!;
+        }
+        if (tags.containsKey('ALBUM')) {
+          radioTrack['album'] = tags['ALBUM']!;
+        }
+      } else if (index > -1) {
+        radioTrack['artist'] = trackinfo.substring(0, index).trim();
+        radioTrack['title'] = trackinfo.substring(index + 3).trim();
+      } else {
+        // Might find some kind of title anyway in metadata
+        final titleEl = metadataElement
+            .findElements('title',
+                namespace: soco_xml.namespaces['dc'])
+            .firstOrNull;
+        final title = titleEl?.innerText ?? '';
+        
+        // Avoid using URIs as the title
+        if (titleInUri(title)) {
+          radioTrack['title'] = trackinfo;
+        } else {
+          radioTrack['title'] = title;
+        }
+      }
+      
+      return radioTrack;
+    }
+
+    // If the speaker is playing from the line-in source, querying for track
+    // metadata will return "NOT_IMPLEMENTED".
+    if (metadata == null ||
+        metadata.isEmpty ||
+        metadata == 'NOT_IMPLEMENTED') {
+      return track;
+    }
+
+    // Parse the metadata XML
+    XmlDocument metadataDoc;
+    try {
+      // Ensure UTF-8 encoding
+      final utf8Metadata = metadata;
+      metadataDoc = XmlDocument.parse(utf8Metadata);
+    } catch (e) {
+      _log.warning('Failed to parse track metadata XML: $e');
+      return track;
+    }
+
+    final metadataElement = metadataDoc.rootElement
+        .findElements('item')
+        .firstOrNull ??
+        metadataDoc.rootElement
+            .findElements('container')
+            .firstOrNull ??
+        metadataDoc.rootElement;
+
+    // Duration seems to be '0:00:00' when listening to radio
+    if (track['duration'] == '0:00:00') {
+      final radioData = parseRadioMetadata(metadataElement);
+      track['title'] = radioData['title'] ?? track['title'];
+      track['artist'] = radioData['artist'] ?? track['artist'];
+      track['album'] = radioData['album'] ?? track['album'];
+    }
+
+    // Track may have been processed as radio, but metadata may still be incomplete.
+    // This is necessary on Sonos Radio as it encodes metadata as a "regular" track.
+    if (track['artist'] == null || (track['artist'] as String).isEmpty) {
+      // Track metadata is returned in DIDL-Lite format
+      final mdTitleEl = metadataElement
+          .findElements('title',
+              namespace: soco_xml.namespaces['dc'])
+          .firstOrNull;
+      var mdTitle = mdTitleEl?.innerText ?? '';
+      
+      if (titleInUri(mdTitle)) {
+        mdTitle = '';
+      }
+      
+      final mdArtistEl = metadataElement
+          .findElements('creator',
+              namespace: soco_xml.namespaces['dc'])
+          .firstOrNull;
+      final mdArtist = mdArtistEl?.innerText ?? '';
+      
+      final mdAlbumEl = metadataElement
+          .findElements('album',
+              namespace: soco_xml.namespaces['upnp'])
+          .firstOrNull;
+      final mdAlbum = mdAlbumEl?.innerText ?? '';
+
+      // Preserve existing values if already processed
+      track['title'] = (track['title'] as String).isNotEmpty
+          ? track['title']
+          : (mdTitle.isNotEmpty ? mdTitle : '');
+      track['artist'] = (track['artist'] as String).isNotEmpty
+          ? track['artist']
+          : (mdArtist.isNotEmpty ? mdArtist : '');
+      track['album'] = (track['album'] as String).isNotEmpty
+          ? track['album']
+          : (mdAlbum.isNotEmpty ? mdAlbum : '');
+
+      final albumArtEl = metadataElement
+          .findElements('albumArtURI',
+              namespace: soco_xml.namespaces['upnp'])
+          .firstOrNull;
+      final albumArtUrl = albumArtEl?.innerText;
+      if (albumArtUrl != null && albumArtUrl.isNotEmpty) {
+        track['album_art'] = musicLibrary.buildAlbumArtFullUri(albumArtUrl);
+      }
     }
 
     return track;
@@ -1201,9 +1335,29 @@ class SoCo {
     media['uri'] = response['CurrentURI'] ?? '';
 
     final metadata = response['CurrentURIMetaData'];
-    if (metadata != null && metadata.isNotEmpty) {
-      // TODO: Parse metadata to extract channel title
-      // This requires XML parsing
+    if (metadata != null && metadata.isNotEmpty && metadata != 'NOT_IMPLEMENTED') {
+      try {
+        final metadataDoc = XmlDocument.parse(metadata);
+        final metadataElement = metadataDoc.rootElement
+            .findElements('item')
+            .firstOrNull ??
+            metadataDoc.rootElement
+                .findElements('container')
+                .firstOrNull ??
+            metadataDoc.rootElement;
+        
+        // Extract channel title from DIDL metadata
+        final titleEl = metadataElement
+            .findElements('title',
+                namespace: soco_xml.namespaces['dc'])
+            .firstOrNull;
+        final channelTitle = titleEl?.innerText ?? '';
+        if (channelTitle.isNotEmpty) {
+          media['channel'] = channelTitle;
+        }
+      } catch (e) {
+        _log.warning('Failed to parse media metadata XML: $e');
+      }
     }
 
     return media;
@@ -1514,11 +1668,11 @@ class SoCo {
   ///   - [fullAlbumArtUri]: If the album art URI should include the IP address
   ///
   /// Returns:
-  ///   A Queue object containing queue items and metadata
+  ///   A [QueueResult] object containing queue items and metadata
   ///
   /// Note: This method is heavily based on Sam Soffes' (aka soffes) ruby
   /// implementation.
-  Future<dynamic> getQueue({
+  Future<QueueResult> getQueue({
     int start = 0,
     int maxItems = 100,
     bool fullAlbumArtUri = false,
@@ -1535,7 +1689,8 @@ class SoCo {
       ],
     );
 
-    // final result = response['Result']; // TODO: Parse this when implementing Queue
+    final result = response['Result'];
+    final queue = <DidlObject>[];
     final metadata = <String, int>{};
 
     // Convert metadata to underscore notation
@@ -1546,13 +1701,26 @@ class SoCo {
       }
     }
 
-    // TODO: Parse DIDL string and create Queue object
-    // For now, return a map with metadata
-    // This requires implementing fromDidlString and Queue class properly
-    return {
-      'items': [], // Will be populated when fromDidlString is implemented
-      'metadata': metadata,
-    };
+    // Parse DIDL string if result is present
+    if (result != null && result.isNotEmpty) {
+      final items = fromDidlString(result);
+      for (final item in items) {
+        // Check if the album art URI should be fully qualified
+        if (fullAlbumArtUri) {
+          musicLibrary.updateAlbumArtToFullUri(item);
+        }
+        
+        queue.add(item);
+      }
+    }
+
+    // Return a Queue-like structure (similar to SearchResult)
+    return QueueResult(
+      items: queue,
+      numberReturned: metadata['number_returned'] ?? 0,
+      totalMatches: metadata['total_matches'] ?? 0,
+      updateId: metadata['update_id'],
+    );
   }
 
   /// Size of the queue.
@@ -1606,18 +1774,19 @@ class SoCo {
     int position = 0,
     bool asNext = false,
   }) async {
-    // Create a minimal DIDL resource
-    // TODO: Use proper DidlResource and DidlObject when fully implemented
-    final metadata =
-        '<DIDL-Lite xmlns:dc="http://purl.org/dc/elements/1.1/" '
-        'xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/" '
-        'xmlns:r="urn:schemas-rinconnetworks-com:metadata-1-0/" '
-        'xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/">'
-        '<item id="-1" parentID="-1" restricted="true">'
-        '<res protocolInfo="x-rincon-playlist:*:*:*">$uri</res>'
-        '<upnp:class>object.item</upnp:class>'
-        '<dc:title></dc:title>'
-        '</item></DIDL-Lite>';
+    // Create proper DIDL object with resource
+    final resource = DidlResource(
+      uri: uri,
+      protocolInfo: 'x-rincon-playlist:*:*:*',
+    );
+    final item = DidlItem(
+      title: '',
+      parentId: '-1',
+      itemId: '-1',
+      restricted: true,
+      resources: [resource],
+    );
+    final metadata = toDidlString([item]);
 
     final response = await avTransport.sendCommand(
       'AddURIToQueue',
@@ -2325,23 +2494,69 @@ class SoCo {
   ///////////////////////////////////////////////////////////////////////////
 
   /// Whether a voice service is configured on this device.
+  ///
+  /// Returns true if a voice service (e.g., Amazon Alexa, Google Assistant)
+  /// is configured, false otherwise.
   Future<bool> get voiceServiceConfigured async {
-    // This would require checking voice config state
-    // Placeholder implementation
-    return false; // TODO: Implement voice service check
+    await zoneGroupState.poll(this);
+    final voiceConfigState = speakerInfo['_voiceConfigState'];
+    if (voiceConfigState == null) {
+      return false;
+    }
+    // VoiceConfigState values: 0 = not configured, 2 = configured
+    return int.tryParse(voiceConfigState.toString()) != 0;
   }
 
   /// Whether the microphone is enabled on this device.
+  ///
+  /// Returns:
+  ///   - `true` if the microphone is enabled
+  ///   - `false` if the microphone is disabled
+  ///   - `null` if the device does not have a microphone or if a voice
+  ///     service is not configured
   Future<bool?> get micEnabled async {
-    // This would require checking mic state
-    // Placeholder implementation
-    return null; // TODO: Implement mic enabled check
+    await zoneGroupState.poll(this);
+    
+    // Check voice service configured first (without polling again)
+    final voiceConfigState = speakerInfo['_voiceConfigState'];
+    final isVoiceConfigured = voiceConfigState != null &&
+        int.tryParse(voiceConfigState.toString()) != 0;
+    
+    // Return null if voice service is not configured
+    if (!isVoiceConfigured) {
+      return null;
+    }
+    
+    final micEnabledValue = speakerInfo['_micEnabled'];
+    if (micEnabledValue == null) {
+      return null;
+    }
+    
+    // MicEnabled values: 0 = disabled, 1 = enabled
+    return int.tryParse(micEnabledValue.toString()) == 1;
   }
 
   /// Set the microphone enabled state.
+  ///
+  /// Note: This functionality may not be available on all Sonos devices
+  /// or firmware versions. The microphone state is typically managed
+  /// through the Sonos app or voice assistant settings.
+  ///
+  /// Parameters:
+  ///   - [enabled]: Whether to enable (true) or disable (false) the microphone.
+  ///
+  /// Throws:
+  ///   - [UnimplementedError] if the device does not support this operation.
+  ///   - [SoCoUPnPException] if the UPnP command fails.
   Future<void> setMicEnabled(bool enabled) async {
-    // TODO: Implement mic enabled setter
-    throw UnimplementedError('setMicEnabled not yet implemented');
+    // Note: Python SoCo does not implement this method, suggesting it may
+    // not be available via UPnP. However, we provide a placeholder in case
+    // future firmware versions or devices support it.
+    // If DeviceProperties service supports SetMicEnabled, it would be called here.
+    throw UnimplementedError(
+      'setMicEnabled is not yet implemented. Microphone state is typically '
+      'managed through the Sonos app or voice assistant settings.',
+    );
   }
 
   /// Create a stereo pair.
@@ -2378,17 +2593,584 @@ class SoCo {
     zoneGroupState.clearCache();
   }
 
-  // TODO: Implement playlist and favorites methods (~20 methods)
-  // These require more complex integration with music_library
-  // - getSonosPlaylists()
-  // - createSonosPlaylist()
-  // - removeSonosPlaylist()
-  // - addItemToSonosPlaylist()
-  // - reorderSonosPlaylist()
-  // - clearSonosPlaylist()
-  // - moveInSonosPlaylist()
-  // - removeFromSonosPlaylist()
-  // - getSonosPlaylistByAttr()
+  ///////////////////////////////////////////////////////////////////////////
+  // PLAYLIST AND FAVORITES METHODS
+  ///////////////////////////////////////////////////////////////////////////
+
+  /// Get Sonos playlists.
+  ///
+  /// Convenience method for calling
+  /// `musicLibrary.getMusicLibraryInformation('sonos_playlists')`.
+  ///
+  /// Parameters:
+  ///   - [start]: Starting index for pagination. Default 0.
+  ///   - [maxItems]: Maximum number of items to return. Default 100.
+  ///   - [fullAlbumArtUri]: Whether album art URIs should be absolute.
+  ///     Default false.
+  ///   - [searchTerm]: Optional search term for filtering results.
+  ///   - [subcategories]: Optional list of subcategories to navigate.
+  ///   - [completeResult]: Whether to fetch all results if more than maxItems.
+  ///     Default false.
+  ///
+  /// Returns:
+  ///   A [SearchResult] containing the playlists.
+  Future<SearchResult> getSonosPlaylists({
+    int start = 0,
+    int maxItems = 100,
+    bool fullAlbumArtUri = false,
+    String? searchTerm,
+    List<String>? subcategories,
+    bool completeResult = false,
+  }) {
+    return musicLibrary.getMusicLibraryInformation(
+      'sonos_playlists',
+      start: start,
+      maxItems: maxItems,
+      fullAlbumArtUri: fullAlbumArtUri,
+      searchTerm: searchTerm,
+      subcategories: subcategories,
+      completeResult: completeResult,
+    );
+  }
+
+  /// Get Sonos favorites.
+  ///
+  /// Convenience method for calling `musicLibrary.getSonosFavorites()`.
+  ///
+  /// Parameters:
+  ///   - [start]: Starting index for pagination. Default 0.
+  ///   - [maxItems]: Maximum number of items to return. Default 100.
+  ///   - [fullAlbumArtUri]: Whether album art URIs should be absolute.
+  ///     Default false.
+  ///   - [searchTerm]: Optional search term for filtering results.
+  ///   - [subcategories]: Optional list of subcategories to navigate.
+  ///   - [completeResult]: Whether to fetch all results if more than maxItems.
+  ///     Default false.
+  ///
+  /// Returns:
+  ///   A [SearchResult] containing the favorites.
+  Future<SearchResult> getSonosFavorites({
+    int start = 0,
+    int maxItems = 100,
+    bool fullAlbumArtUri = false,
+    String? searchTerm,
+    List<String>? subcategories,
+    bool completeResult = false,
+  }) {
+    return musicLibrary.getSonosFavorites(
+      start: start,
+      maxItems: maxItems,
+      fullAlbumArtUri: fullAlbumArtUri,
+      searchTerm: searchTerm,
+      subcategories: subcategories,
+      completeResult: completeResult,
+    );
+  }
+
+  /// Get favorite radio stations.
+  ///
+  /// Convenience method for calling `musicLibrary.getFavoriteRadioStations()`.
+  ///
+  /// Parameters:
+  ///   - [start]: Starting index for pagination. Default 0.
+  ///   - [maxItems]: Maximum number of items to return. Default 100.
+  ///   - [fullAlbumArtUri]: Whether album art URIs should be absolute.
+  ///     Default false.
+  ///   - [searchTerm]: Optional search term for filtering results.
+  ///   - [subcategories]: Optional list of subcategories to navigate.
+  ///   - [completeResult]: Whether to fetch all results if more than maxItems.
+  ///     Default false.
+  ///
+  /// Returns:
+  ///   A [SearchResult] containing the radio stations.
+  Future<SearchResult> getFavoriteRadioStations({
+    int start = 0,
+    int maxItems = 100,
+    bool fullAlbumArtUri = false,
+    String? searchTerm,
+    List<String>? subcategories,
+    bool completeResult = false,
+  }) {
+    return musicLibrary.getFavoriteRadioStations(
+      start: start,
+      maxItems: maxItems,
+      fullAlbumArtUri: fullAlbumArtUri,
+      searchTerm: searchTerm,
+      subcategories: subcategories,
+      completeResult: completeResult,
+    );
+  }
+
+  /// Get favorite radio shows.
+  ///
+  /// Convenience method for calling `musicLibrary.getFavoriteRadioShows()`.
+  ///
+  /// Parameters:
+  ///   - [start]: Starting index for pagination. Default 0.
+  ///   - [maxItems]: Maximum number of items to return. Default 100.
+  ///   - [fullAlbumArtUri]: Whether album art URIs should be absolute.
+  ///     Default false.
+  ///   - [searchTerm]: Optional search term for filtering results.
+  ///   - [subcategories]: Optional list of subcategories to navigate.
+  ///   - [completeResult]: Whether to fetch all results if more than maxItems.
+  ///     Default false.
+  ///
+  /// Returns:
+  ///   A [SearchResult] containing the radio shows.
+  Future<SearchResult> getFavoriteRadioShows({
+    int start = 0,
+    int maxItems = 100,
+    bool fullAlbumArtUri = false,
+    String? searchTerm,
+    List<String>? subcategories,
+    bool completeResult = false,
+  }) {
+    return musicLibrary.getFavoriteRadioShows(
+      start: start,
+      maxItems: maxItems,
+      fullAlbumArtUri: fullAlbumArtUri,
+      searchTerm: searchTerm,
+      subcategories: subcategories,
+      completeResult: completeResult,
+    );
+  }
+
+  /// Create a new empty Sonos playlist.
+  ///
+  /// Parameters:
+  ///   - [title]: Name of the playlist.
+  ///
+  /// Returns:
+  ///   A [DidlPlaylistContainer] representing the created playlist.
+  Future<DidlPlaylistContainer> createSonosPlaylist(String title) async {
+    final response = await avTransport.sendCommand(
+      'CreateSavedQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Title', title),
+        MapEntry('EnqueuedURI', ''),
+        MapEntry('EnqueuedURIMetaData', ''),
+      ],
+    );
+
+    final itemId = response['AssignedObjectID'] as String;
+    final objId = itemId.split(':')[1];
+    final uri = 'file:///jffs/settings/savedqueues.rsq#$objId';
+
+    final res = [
+      DidlResource(uri: uri, protocolInfo: 'x-rincon-playlist:*:*:*'),
+    ];
+    return DidlPlaylistContainer(
+      resources: res,
+      title: title,
+      parentId: 'SQ:',
+      itemId: itemId,
+    );
+  }
+
+  /// Create a new Sonos playlist from the current queue.
+  ///
+  /// This method must be called on the coordinator (master) speaker.
+  ///
+  /// Parameters:
+  ///   - [title]: Name of the playlist.
+  ///
+  /// Returns:
+  ///   A [DidlPlaylistContainer] representing the created playlist.
+  Future<DidlPlaylistContainer> createSonosPlaylistFromQueue(
+    String title,
+  ) async {
+    final response = await avTransport.sendCommand(
+      'SaveQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('Title', title),
+        MapEntry('ObjectID', ''),
+      ],
+    );
+
+    final itemId = response['AssignedObjectID'] as String;
+    final objId = itemId.split(':')[1];
+    final uri = 'file:///jffs/settings/savedqueues.rsq#$objId';
+
+    final res = [
+      DidlResource(uri: uri, protocolInfo: 'x-rincon-playlist:*:*:*'),
+    ];
+    return DidlPlaylistContainer(
+      resources: res,
+      title: title,
+      parentId: 'SQ:',
+      itemId: itemId,
+    );
+  }
+
+  /// Remove a Sonos playlist.
+  ///
+  /// Parameters:
+  ///   - [sonosPlaylist]: The playlist to remove, either a
+  ///     [DidlPlaylistContainer] object or the item_id (String).
+  ///
+  /// Returns:
+  ///   `true` if successful.
+  ///
+  /// Throws:
+  ///   [SoCoUPnPException] if the playlist does not exist.
+  Future<bool> removeSonosPlaylist(dynamic sonosPlaylist) async {
+    final objectId = sonosPlaylist is DidlPlaylistContainer
+        ? sonosPlaylist.itemId
+        : sonosPlaylist as String;
+    await contentDirectory.sendCommand(
+      'DestroyObject',
+      args: [MapEntry('ObjectID', objectId)],
+    );
+    return true;
+  }
+
+  /// Add a queueable item to a Sonos playlist.
+  ///
+  /// Parameters:
+  ///   - [queueableItem]: The item to add to the playlist (a [DidlObject]
+  ///     or [MusicServiceItem]).
+  ///   - [sonosPlaylist]: The Sonos playlist to add the item to.
+  Future<void> addItemToSonosPlaylist(
+    dynamic queueableItem,
+    dynamic sonosPlaylist,
+  ) async {
+    final playlistId = sonosPlaylist is DidlPlaylistContainer
+        ? sonosPlaylist.itemId
+        : sonosPlaylist as String;
+
+    // Get the update_id for the playlist
+    final response = await contentDirectory.sendCommand(
+      'Browse',
+      args: [
+        MapEntry('ObjectID', playlistId),
+        MapEntry('BrowseFlag', 'BrowseDirectChildren'),
+        MapEntry('Filter', '*'),
+        MapEntry('StartingIndex', 0),
+        MapEntry('RequestedCount', 1),
+        MapEntry('SortCriteria', ''),
+      ],
+    );
+    final updateId = int.parse(response['UpdateID'] ?? '0');
+
+    // Form the metadata for queueableItem
+    final didlItem = queueableItem as DidlObject;
+    final metadata = toDidlString([didlItem]);
+
+    // Get the URI from the first resource
+    final uri = didlItem.resources.isNotEmpty ? didlItem.resources[0].uri : '';
+
+    // Make the request
+    await avTransport.sendCommand(
+      'AddURIToSavedQueue',
+      args: [
+        MapEntry('InstanceID', 0),
+        MapEntry('UpdateID', updateId),
+        MapEntry('ObjectID', playlistId),
+        MapEntry('EnqueuedURI', uri),
+        MapEntry('EnqueuedURIMetaData', metadata),
+        // 2^32 - 1 = 4294967295, largest 32-bit uint, means "add at end"
+        MapEntry('AddAtIndex', 4294967295),
+      ],
+    );
+  }
+
+  /// Reorder and/or remove tracks in a Sonos playlist.
+  ///
+  /// This is a complex method that can both move tracks within the list or
+  /// delete tracks from the playlist. All of this depends on what [tracks]
+  /// and [newPos] specify.
+  ///
+  /// If a list is specified for [tracks], then a list must be used for
+  /// [newPos]. Each list element is a discrete modification and the next
+  /// list operation must anticipate the new state of the playlist.
+  ///
+  /// If a comma-formatted string for [tracks] is specified, then use a similar
+  /// string to specify [newPos]. Those operations should be ordered from the
+  /// end of the list to the beginning.
+  ///
+  /// See the helper methods [clearSonosPlaylist], [moveInSonosPlaylist],
+  /// [removeFromSonosPlaylist] for simplified usage.
+  ///
+  /// Parameters:
+  ///   - [sonosPlaylist]: The playlist object or the item_id (String).
+  ///   - [tracks]: List of track indices (int) to reorder, or a comma-separated
+  ///     string. Tracks are 0-based (first track is 0).
+  ///   - [newPos]: List of new positions (int?) corresponding to tracks, or
+  ///     a comma-separated string. Must be the same type as [tracks].
+  ///     0-based. `null` indicates to remove the track. If using strings,
+  ///     empty string indicates removal.
+  ///   - [updateId]: Operation ID (default: 0). If set to 0, a lookup is done.
+  ///
+  /// Returns:
+  ///   A map containing: 'change' (int), 'length' (int), and 'update_id' (int).
+  ///
+  /// Throws:
+  ///   [SoCoUPnPException] if playlist does not exist or arguments are invalid.
+  Future<Map<String, int>> reorderSonosPlaylist(
+    dynamic sonosPlaylist,
+    dynamic tracks,
+    dynamic newPos, {
+    int updateId = 0,
+  }) async {
+    final objectId = sonosPlaylist is DidlPlaylistContainer
+        ? sonosPlaylist.itemId
+        : sonosPlaylist as String;
+
+    List<String> trackList;
+    List<String> positionList;
+
+    if (tracks is String) {
+      trackList = [tracks];
+      positionList = [newPos is String ? newPos : newPos.toString()];
+    } else if (tracks is int) {
+      trackList = [tracks.toString()];
+      positionList = [newPos == null ? '' : newPos.toString()];
+    } else {
+      trackList = (tracks as List).map((x) => x.toString()).toList();
+      positionList = (newPos as List)
+          .map((x) => x == null ? '' : x.toString())
+          .toList();
+    }
+
+    // Get update_id if needed
+    if (updateId == 0) {
+      final response = await contentDirectory.sendCommand(
+        'Browse',
+        args: [
+          MapEntry('ObjectID', objectId),
+          MapEntry('BrowseFlag', 'BrowseDirectChildren'),
+          MapEntry('Filter', '*'),
+          MapEntry('StartingIndex', 0),
+          MapEntry('RequestedCount', 1),
+          MapEntry('SortCriteria', ''),
+        ],
+      );
+      updateId = int.parse(response['UpdateID'] ?? '0');
+    }
+
+    int change = 0;
+    Map<String, dynamic> lastResponse = {};
+
+    for (var i = 0; i < trackList.length; i++) {
+      final track = trackList[i];
+      final position = positionList[i];
+
+      // Skip no-op moves
+      if (track == position) continue;
+
+      lastResponse = await avTransport.sendCommand(
+        'ReorderTracksInSavedQueue',
+        args: [
+          MapEntry('InstanceID', 0),
+          MapEntry('ObjectID', objectId),
+          MapEntry('UpdateID', updateId),
+          MapEntry('TrackList', track),
+          MapEntry('NewPositionList', position),
+        ],
+      );
+
+      change += int.parse(lastResponse['QueueLengthChange'] ?? '0');
+      updateId = int.parse(lastResponse['NewUpdateID'] ?? '0');
+    }
+
+    final length = int.parse(lastResponse['NewQueueLength'] ?? '0');
+    return {
+      'change': change,
+      'update_id': updateId,
+      'length': length,
+    };
+  }
+
+  /// Clear all tracks from a Sonos playlist.
+  ///
+  /// This is a convenience method for [reorderSonosPlaylist].
+  ///
+  /// Parameters:
+  ///   - [sonosPlaylist]: The playlist object or the item_id (String).
+  ///   - [updateId]: Optional update counter. If 0, it will be looked up.
+  ///
+  /// Returns:
+  ///   A map with 'change', 'update_id', and 'length' keys.
+  Future<Map<String, int>> clearSonosPlaylist(
+    dynamic sonosPlaylist, {
+    int updateId = 0,
+  }) async {
+    DidlPlaylistContainer playlist;
+    if (sonosPlaylist is DidlPlaylistContainer) {
+      playlist = sonosPlaylist;
+    } else {
+      playlist = await getSonosPlaylistByAttr('item_id', sonosPlaylist);
+    }
+
+    final browseResult = await musicLibrary.browse(mlItem: playlist);
+    final count = browseResult.totalMatches;
+    final tracks = List.generate(count, (i) => i.toString()).join(',');
+
+    if (tracks.isNotEmpty) {
+      return reorderSonosPlaylist(
+        playlist,
+        tracks,
+        '',
+        updateId: updateId,
+      );
+    } else {
+      return {
+        'change': 0,
+        'update_id': updateId,
+        'length': count,
+      };
+    }
+  }
+
+  /// Move a track to a new position within a Sonos playlist.
+  ///
+  /// This is a convenience method for [reorderSonosPlaylist].
+  ///
+  /// Parameters:
+  ///   - [sonosPlaylist]: The playlist object or the item_id (String).
+  ///   - [track]: 0-based position of the track to move.
+  ///   - [newPos]: 0-based location to move the track.
+  ///   - [updateId]: Optional update counter. If 0, it will be looked up.
+  ///
+  /// Returns:
+  ///   A map with 'change', 'update_id', and 'length' keys.
+  Future<Map<String, int>> moveInSonosPlaylist(
+    dynamic sonosPlaylist,
+    int track,
+    int newPos, {
+    int updateId = 0,
+  }) {
+    return reorderSonosPlaylist(
+      sonosPlaylist,
+      track,
+      newPos,
+      updateId: updateId,
+    );
+  }
+
+  /// Remove a track from a Sonos playlist.
+  ///
+  /// This is a convenience method for [reorderSonosPlaylist].
+  ///
+  /// Parameters:
+  ///   - [sonosPlaylist]: The playlist object or the item_id (String).
+  ///   - [track]: 0-based position of the track to remove.
+  ///   - [updateId]: Optional update counter. If 0, it will be looked up.
+  ///
+  /// Returns:
+  ///   A map with 'change', 'update_id', and 'length' keys.
+  Future<Map<String, int>> removeFromSonosPlaylist(
+    dynamic sonosPlaylist,
+    int track, {
+    int updateId = 0,
+  }) {
+    return reorderSonosPlaylist(
+      sonosPlaylist,
+      track,
+      null,
+      updateId: updateId,
+    );
+  }
+
+  /// Convert a Map representation from fromDidlString to a DidlPlaylistContainer.
+  ///
+  /// This is a helper function to handle the incomplete fromDidlString
+  /// implementation that returns Maps instead of DidlObject instances.
+  DidlPlaylistContainer _mapToPlaylistContainer(Map<String, dynamic> itemMap) {
+    final element = itemMap['element'] as XmlElement;
+    
+    // Extract title from dc:title element
+    final titleEl = element
+        .findElements('title',
+            namespace: 'http://purl.org/dc/elements/1.1/')
+        .firstOrNull;
+    final title = titleEl?.innerText ?? '';
+    
+    // Extract ID and parentID from attributes
+    final id = element.getAttribute('id') ?? '';
+    final parentId = element.getAttribute('parentID') ?? 'SQ:';
+    final restricted = element.getAttribute('restricted') == 'true';
+    
+    // Extract resource information
+    final resEl = element.findElements('res').firstOrNull;
+    final uri = resEl?.innerText ?? '';
+    final protocolInfo =
+        resEl?.getAttribute('protocolInfo') ?? 'x-rincon-playlist:*:*:*';
+    
+    return DidlPlaylistContainer(
+      title: title,
+      parentId: parentId,
+      itemId: id,
+      restricted: restricted,
+      resources: uri.isNotEmpty
+          ? [DidlResource(uri: uri, protocolInfo: protocolInfo)]
+          : [],
+    );
+  }
+
+  /// Return the first Sonos playlist that matches the specified attribute.
+  ///
+  /// Parameters:
+  ///   - [attrName]: Playlist attribute to compare (e.g., 'title', 'item_id').
+  ///   - [match]: Value to match.
+  ///
+  /// Returns:
+  ///   A [DidlPlaylistContainer] matching the criteria, or throws if not found.
+  ///
+  /// Throws:
+  ///   [SoCoException] if no matching playlist is found.
+  Future<DidlPlaylistContainer> getSonosPlaylistByAttr(
+    String attrName,
+    String match,
+  ) async {
+    // Get playlists - this may fail if music library tries to add Maps to List<DidlObject>
+    // So we need to handle the case where items are actually Maps at runtime
+    SearchResult playlists;
+    try {
+      playlists = await getSonosPlaylists();
+    } catch (e) {
+      // If we get a type error, it means the music library has Maps instead of DidlObjects
+      // We'll need to work around this by calling contentDirectory directly
+      throw SoCoException(
+        'Failed to get playlists. This may be due to a type mismatch in music library.',
+      );
+    }
+    
+    // Handle both DidlObject and Map representations
+    // The items list may contain Maps at runtime even though it's typed as List<DidlObject>
+    final items = playlists.items as dynamic;
+    for (final item in items) {
+      String? value;
+      DidlPlaylistContainer? playlist;
+      
+      if (item is DidlPlaylistContainer) {
+        playlist = item;
+        value = attrName == 'title'
+            ? item.title
+            : attrName == 'item_id'
+                ? item.itemId
+                : null;
+      } else if (item is Map) {
+        // Handle Map representation from fromDidlString
+        final itemMap = item as Map<String, dynamic>;
+        if (itemMap['class'] == DidlPlaylistContainer) {
+          playlist = _mapToPlaylistContainer(itemMap);
+          value = attrName == 'title'
+              ? playlist.title
+              : attrName == 'item_id'
+                  ? playlist.itemId
+                  : null;
+        }
+      }
+      
+      if (value == match && playlist != null) {
+        return playlist;
+      }
+    }
+    throw SoCoException('No Sonos playlist found with $attrName="$match"');
+  }
   // - getFavoriteRadioShows()
   // - getFavoriteRadioStations()
   // - getSonosFavorites()

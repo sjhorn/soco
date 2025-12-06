@@ -23,59 +23,60 @@ void main() {
       final xmlString = dataLoader.loadXml('track.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlMusicTrack));
+      expect(result, isA<DidlMusicTrack>());
+      expect(result.effectiveItemClass, equals('object.item.audioItem.musicTrack'));
     });
 
     test('identifies DidlMusicAlbum class from XML', () {
       final xmlString = dataLoader.loadXml('album.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
       // Note: album.xml contains "object.container.album.musicAlbum"
       // which falls back to DidlObject since only "object.container.musicAlbum"
-      // is registered
-      expect(result['class'], equals(DidlObject));
+      // is registered, but with dynamic class creation it should be DidlAlbum
+      expect(result, isA<DidlObject>());
+      // The effectiveItemClass should match the XML
+      expect(result.effectiveItemClass, contains('musicAlbum'));
     });
 
     test('identifies DidlMusicArtist class from XML', () {
       final xmlString = dataLoader.loadXml('artist.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlMusicArtist));
+      expect(result, isA<DidlMusicArtist>());
+      expect(result.effectiveItemClass, equals('object.container.person.musicArtist'));
     });
 
     test('identifies DidlMusicGenre class from XML', () {
       final xmlString = dataLoader.loadXml('genre.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlMusicGenre));
+      expect(result, isA<DidlMusicGenre>());
+      expect(result.effectiveItemClass, equals('object.container.genre.musicGenre'));
     });
 
     test('identifies DidlContainer class from XML (share)', () {
       final xmlString = dataLoader.loadXml('share.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlContainer));
+      expect(result, isA<DidlContainer>());
+      expect(result.effectiveItemClass, equals('object.container'));
     });
 
     test('identifies DidlPlaylistContainer class from XML', () {
       final xmlString = dataLoader.loadXml('playlist.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlPlaylistContainer));
+      expect(result, isA<DidlPlaylistContainer>());
+      expect(result.effectiveItemClass, equals('object.container.playlistContainer'));
     });
 
     test('identifies DidlAudioBroadcast class from XML', () {
       final xmlString = dataLoader.loadXml('audio_broadcast.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlAudioBroadcast));
+      expect(result, isA<DidlAudioBroadcast>());
+      expect(result.effectiveItemClass, equals('object.item.audioItem.audioBroadcast'));
     });
 
     test('handles vendor extended DIDL class - falls back to DidlObject', () {
@@ -84,17 +85,18 @@ void main() {
       final xmlString = dataLoader.loadXml('recent_show.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      // Unknown classes fall back to DidlObject
-      expect(result['class'], equals(DidlObject));
+      // Unknown classes create a dynamic factory, but the base class is DidlMusicTrack
+      expect(result, isA<DidlMusicTrack>());
+      // The effectiveItemClass should contain the original class name
+      expect(result.effectiveItemClass, contains('recentShow'));
     });
 
     test('identifies DidlComposer class from XML', () {
       final xmlString = dataLoader.loadXml('composer.xml');
       final result = fromDidlString(xmlString)[0];
 
-      expect(result, isA<Map>());
-      expect(result['class'], equals(DidlComposer));
+      expect(result, isA<DidlComposer>());
+      expect(result.effectiveItemClass, equals('object.container.person.composer'));
     });
 
     test('throws DIDLMetadataError for missing upnp:class element', () {

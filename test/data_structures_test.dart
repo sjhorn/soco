@@ -97,6 +97,50 @@ void main() {
         equals(DidlObject),
       );
     });
+
+    test('creates factory for unknown classes', () {
+      // Clear any existing factories for this test
+      final unknownClass = 'object.container.customExtension';
+      
+      // First call should return base class and create factory
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlContainer));
+      
+      // Factory should be available
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      // Factory should create instance with correct itemClass override
+      final instance = factory!(
+        title: 'Test',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlContainer>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
+
+    test('creates factory for nested unknown classes', () {
+      final unknownClass = 'object.container.album.customAlbum';
+      
+      // Should find base class DidlAlbum
+      final baseClass = didlClassToSoCoClass(unknownClass);
+      expect(baseClass, equals(DidlAlbum));
+      
+      // Factory should create instance with correct override
+      final factory = getDidlClassFactory(unknownClass);
+      expect(factory, isNotNull);
+      
+      final instance = factory!(
+        title: 'Custom Album',
+        parentId: '0',
+        itemId: '1',
+      );
+      
+      expect(instance, isA<DidlAlbum>());
+      expect(instance.effectiveItemClass, equals(unknownClass));
+    });
   });
 
   group('DidlResource', () {

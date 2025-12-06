@@ -344,6 +344,7 @@ void main() {
 
     test('equality returns false for different types', () {
       final track = MSTrack({'title': 'Song'});
+      // ignore: unrelated_type_equality_checks
       expect(track == 'not a track', isFalse);
     });
 

@@ -106,16 +106,44 @@ Sonos speakers from Dart applications.
 - Updated `services.dart` with proper `eventSubscriptionUrl` and `defaultArgs`
   for all UPnP services to match Python SoCo implementation
 
-## [Unreleased]
+## [0.1.2] - 2025-12-01
 
-### Planned
-- Voice assistant methods (`voiceServiceConfigured`, `micEnabled`, `setMicEnabled`)
-- Playlist/favorites methods (~20 methods for Sonos playlist management)
-- Enhanced SCPD (Service Control Protocol Description) parsing
-- WIMP/Tidal legacy plugin
-- Performance optimizations
-- Additional dartdoc documentation
+### Performance Improvements
 
+- **XML Serialization Optimizations**: Significant performance improvements for DIDL-Lite XML operations:
+  - Direct XML builder usage (`toElementInBuilder`) avoids intermediate object creation
+  - Pre-computed namespace tags for common DIDL elements (dc:title, upnp:class, etc.)
+  - Optimized child element lookup using pre-built maps instead of repeated tree traversal
+  - Pre-computed translation lookup keys for faster metadata extraction
+  - Conditional logging to eliminate overhead when logging is disabled
+  - Cache key optimization using hash codes instead of full strings
+
+- **Performance Benchmarks**: Added comprehensive benchmark suite (`benchmark/benchmark.dart`) comparing Dart vs Python SoCo:
+  - DIDL to String: **50% faster** (~30K ops/sec vs ~20K ops/sec baseline)
+  - Round-trip (parse → serialize): **84% faster** (~83K ops/sec vs ~45K ops/sec baseline)
+  - fromElement: Maintained high performance (~151K ops/sec)
+  - Round-trip operations now **2x faster** than Python SoCo
+
+### Added
+
+- **Performance Benchmark Suite**: Added `benchmark/benchmark.dart` and `benchmark/benchmark_python.py` for performance comparison
+- **Performance Documentation**: Added `benchmark/PERFORMANCE_COMPARISON.md` and `benchmark/OPTIMIZATION_NOTES.md` documenting optimizations
+
+### Changed
+
+- `DidlResource.toElementInBuilder()`: New optimized method for direct XML building
+- `DidlObject.toElement()`: Now uses optimized boolean string conversion
+- `fromDidlString()`: Improved error recovery using pre-compiled RegExp
+- Metadata extraction: Uses pre-computed lookup keys for faster access
+
+### Technical Details
+
+- XML serialization now uses direct builder methods instead of parse/serialize cycles
+- Child element collection optimized to single pass with map-based lookups
+- Namespace tag generation uses pre-computed constants for common cases
+- Translation lookup keys pre-computed at class initialization
+
+[0.1.2]: https://github.com/sjhorn/soco/releases/tag/v0.1.2
 [0.1.1]: https://github.com/sjhorn/soco/releases/tag/v0.1.1
 [0.1.0]: https://github.com/sjhorn/soco/releases/tag/v0.1.0
-[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/sjhorn/soco/compare/v0.1.2...HEAD

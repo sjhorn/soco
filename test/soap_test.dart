@@ -217,7 +217,7 @@ void main() {
           .where((e) => e.localName == 'Unicode')
           .first;
       expect(unicode.innerText, equals('data'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws SoapFault on 500 response with SOAP fault', () async {
       const faultResponse = '''<?xml version="1.0"?>
@@ -255,7 +255,7 @@ void main() {
               .having((f) => f.faultstring, 'faultstring', 'UPnPError'),
         ),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws SoapFault on 200 response containing fault', () async {
       const faultIn200Response = '''<?xml version="1.0"?>
@@ -287,7 +287,7 @@ void main() {
               .having((f) => f.faultstring, 'faultstring', 'Server Error'),
         ),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws XmlParserException on 500 response with invalid XML', () async {
       final mockClient = MockClient((request) async {
@@ -305,7 +305,7 @@ void main() {
         () => soap.call(),
         throwsA(isA<Exception>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws ClientException on non-200/500 response', () async {
       final mockClient = MockClient((request) async {
@@ -322,7 +322,7 @@ void main() {
         () => soap.call(),
         throwsA(isA<http.ClientException>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('sends parameters correctly in request body', () async {
       String? capturedBody;
@@ -354,7 +354,7 @@ void main() {
         capturedBody,
         contains('xmlns="urn:schemas-upnp-org:service:RenderingControl:1"'),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('includes SOAP header when provided', () async {
       String? capturedBody;
@@ -377,7 +377,7 @@ void main() {
       expect(capturedBody, contains('<credentials>'));
       expect(capturedBody, contains('<token>abc123</token>'));
       expect(capturedBody, contains('</s:Header>'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('uses custom timeout when provided', () async {
       final mockClient = MockClient((request) async {
@@ -395,7 +395,7 @@ void main() {
       // Should complete without timing out
       final result = await soap.call();
       expect(result, isNotNull);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws ClientException on non-SOAP error response', () async {
       // Return 400 Bad Request with a non-SOAP body (not a fault envelope)
@@ -417,6 +417,6 @@ void main() {
         () => soap.call(),
         throwsA(isA<http.ClientException>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 }

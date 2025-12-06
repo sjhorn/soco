@@ -1,7 +1,11 @@
 /// Tests for ZoneGroupState XML parsing and processing.
 library;
 
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
+import 'package:soco/src/config.dart' as config;
+import 'package:soco/src/exceptions.dart';
 import 'package:soco/src/zonegroupstate.dart';
 import 'package:soco/src/core.dart';
 
@@ -69,7 +73,7 @@ void main() {
         );
 
         expect(zgs.totalRequests, equals(1));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('increments processedCount for new payloads', () async {
         final xml = '''
@@ -93,7 +97,7 @@ void main() {
         );
 
         expect(zgs.processedCount, equals(1));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('skips duplicate payloads', () async {
         final xml = '''
@@ -126,7 +130,7 @@ void main() {
         // totalRequests should increase but processedCount should not
         expect(zgs.totalRequests, equals(2));
         expect(zgs.processedCount, equals(firstProcessedCount));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('parses single zone group', () async {
         final xml = '''
@@ -149,7 +153,7 @@ void main() {
 
         expect(zgs.groups.length, equals(1));
         expect(zgs.allZones.length, equals(1));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('parses multiple zone groups', () async {
         final xml = '''
@@ -177,7 +181,7 @@ void main() {
 
         expect(zgs.groups.length, equals(2));
         expect(zgs.allZones.length, equals(2));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('parses grouped zones (multiple members in one group)', () async {
         final xml = '''
@@ -234,7 +238,7 @@ void main() {
 
         expect(zgs.allZones.length, equals(2));
         expect(zgs.visibleZones.length, equals(1));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('identifies coordinator', () async {
         final xml = '''
@@ -265,7 +269,7 @@ void main() {
 
         // Check coordinator status via speakerInfo
         expect(group.coordinator.speakerInfo['_isCoordinator'], isTrue);
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('parses satellite speakers', () async {
         final xml = '''
@@ -306,7 +310,7 @@ void main() {
 
         final satellite2 = SoCo('192.168.1.114');
         expect(satellite2.speakerInfo['_isSatellite'], isTrue);
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('handles legacy format without ZoneGroups wrapper', () async {
         // Pre-10.1 firmware format
@@ -328,7 +332,7 @@ void main() {
 
         expect(zgs.groups.length, equals(1));
         expect(zgs.allZones.length, equals(1));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('extracts zone name from attribute', () async {
         final xml = '''
@@ -351,7 +355,7 @@ void main() {
 
         final zone = SoCo('192.168.1.116');
         expect(zone.speakerInfo['_playerName'], equals('My Custom Zone Name'));
-      });
+      }, timeout: Timeout(Duration(seconds: 10)));
 
       test('extracts UUID from attribute', () async {
         final xml = '''
@@ -374,8 +378,8 @@ void main() {
 
         final zone = SoCo('192.168.1.117');
         expect(zone.speakerInfo['_uid'], equals('RINCON_TEST_UUID_123'));
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 10)));
+    }, timeout: Timeout(Duration(seconds: 10)));
 
     group('XML normalization', () {
       test('treats reordered elements as same payload', () async {
@@ -436,21 +440,53 @@ void main() {
     });
 
     group('poll exception handling', () {
-      test('poll rethrows SoCoUPnPException when zgtEventFallback is disabled', () async {
-        // This test verifies the exception path in poll() when GetZoneGroupState fails
-        // We can't easily mock the HTTP call, but we can verify the behavior
-        // by attempting to poll a non-existent device
+      /// Helper to create a UPnP error response
+      String errorResponse(int errorCode, String errorDescription) {
+        return '''<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/"
+            s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    <s:Fault>
+      <faultcode>s:Client</faultcode>
+      <faultstring>UPnPError</faultstring>
+      <detail>
+        <UPnPError xmlns="urn:schemas-upnp-org:control-1-0">
+          <errorCode>$errorCode</errorCode>
+          <errorDescription>$errorDescription</errorDescription>
+        </UPnPError>
+      </detail>
+    </s:Fault>
+  </s:Body>
+</s:Envelope>''';
+      }
 
-        final testZone = SoCo('192.168.254.254'); // Non-routable IP
-        final zgs = ZoneGroupState();
-
-        // The poll should fail with some kind of exception
-        // (either timeout, connection refused, or UPnP error)
-        expect(
-          () => zgs.poll(testZone),
-          throwsA(anything),
-        );
-      });
-    });
-  });
+      test('poll rethrows NotSupportedException when zgtEventFallback is disabled', () async {
+        // Save original config value
+        final originalFallback = config.zgtEventFallback;
+        
+        try {
+          // Disable event fallback
+          config.zgtEventFallback = false;
+          
+          final testZone = SoCo('192.168.99.100');
+          final zgs = ZoneGroupState();
+          
+          // Mock HTTP client to return UPnP error (simulating large system failure)
+          final mockClient = MockClient((request) async {
+            return http.Response(errorResponse(501, 'Action Failed'), 500);
+          });
+          testZone.httpClient = mockClient;
+          
+          // The poll should throw NotSupportedException when fallback is disabled
+          await expectLater(
+            zgs.poll(testZone),
+            throwsA(isA<NotSupportedException>()),
+          );
+        } finally {
+          // Restore original config value
+          config.zgtEventFallback = originalFallback;
+        }
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
+  }, timeout: Timeout(Duration(seconds: 10)));
 }

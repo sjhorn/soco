@@ -5,7 +5,7 @@ This repository is for the Dart package **`soco`**.
 This will be a port of the soco python library available in ./SoCo
 The focus will be porting each file to match the same name and also port the tests and examples to achieve exact input and output match prior to testing with the real sonos devices. The README.md will follow the docs from ./SoCo and the LICENCE will also match. 
 We will aim to create a TODO.md that we maintain and add a git commit and message for each step we take on this porting journey. 
-We will aim to keep our test coverage above 80% fixing error found when adding test coverage, and keep 100% API compatibility with the python version where possible in dart idioms.
+We will aim to keep our test coverage above 80% fixing error found when adding test coverage, and keep 100% API compatibility with the python version where possible in dart idioms. We will also ensure we run tests with a small timeout to avoid them running too long.
 We will aim to commit to git after each meaningful milestone with a useful concise comment. 
 
 Key points:

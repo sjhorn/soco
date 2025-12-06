@@ -347,7 +347,7 @@ void main() {
         'spotify:track:6NmXV4o6bmp704aPGyTVVG',
       );
       expect(position, equals(5));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('adds Spotify album to queue with title', () async {
       mockClient = MockClient((request) async {
@@ -372,7 +372,7 @@ void main() {
         dcTitle: 'My Album Title',
       );
       expect(position, equals(1));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('adds TIDAL track to queue', () async {
       mockClient = MockClient((request) async {
@@ -396,7 +396,7 @@ void main() {
         'https://tidal.com/browse/track/157273956',
       );
       expect(position, equals(3));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('adds item at specific position', () async {
       var receivedPosition = -1;
@@ -426,7 +426,7 @@ void main() {
         position: 7,
       );
       expect(receivedPosition, equals(7));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('adds item with asNext=true', () async {
       var receivedAsNext = '';
@@ -455,7 +455,7 @@ void main() {
         asNext: true,
       );
       expect(receivedAsNext, equals('1'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('throws for unsupported URI', () async {
       mockClient = MockClient((request) async {
@@ -472,7 +472,7 @@ void main() {
           contains('Unsupported URI'),
         )),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('tries next service on failure', () async {
       // The plugin should try SpotifyShare, then SpotifyUSShare
@@ -503,6 +503,6 @@ void main() {
       );
       expect(position, equals(1));
       expect(callCount, equals(2));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 }

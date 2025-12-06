@@ -322,15 +322,15 @@ class Snapshot {
       // Need to get all the tracks in batches, but Only get the next
       // batch if all the items requested were in the last batch
       while (numReturn == batchSize) {
-        final queueItems = await device.getQueue(
+        final queueResult = await device.getQueue(
           start: total,
           maxItems: batchSize,
         );
         // Check how many entries were returned
-        numReturn = queueItems.length;
+        numReturn = queueResult.items.length;
         // Make sure the queue is not empty
         if (numReturn > 0) {
-          queue!.add(queueItems);
+          queue!.add(queueResult.items);
         }
         // Update the total that have been processed
         total = total + numReturn;

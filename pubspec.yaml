@@ -1,6 +1,6 @@
 name: soco
 description: Control Sonos speakers programmatically. Discover devices, manage playback, groups, alarms, and more. Port of Python SoCo library.
-version: 0.1.1
+version: 0.1.2
 repository: https://github.com/sjhorn/soco
 homepage: https://github.com/sjhorn/soco
 issue_tracker: https://github.com/sjhorn/soco/issues

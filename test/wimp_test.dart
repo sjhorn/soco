@@ -156,7 +156,7 @@ void main() {
         () => plugin.getMusicServiceInformation('invalid', 'query'),
         throwsA(isA<ArgumentError>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('getTracks makes correct HTTP request', () async {
       String? capturedBody;
@@ -191,7 +191,7 @@ void main() {
       expect(capturedBody!.contains('<term>test query</term>'), isTrue);
       expect(result['count'], equals('0'));
       expect(result['item_list'], isA<List<MusicServiceItem>>());
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('getAlbums makes correct HTTP request', () async {
       String? capturedBody;
@@ -217,7 +217,7 @@ void main() {
       expect(capturedBody!.contains('<id>albumsearch</id>'), isTrue);
       expect(capturedBody!.contains('<term>test album</term>'), isTrue);
       expect(result['count'], equals('0'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('getArtists makes correct HTTP request', () async {
       String? capturedBody;
@@ -243,7 +243,7 @@ void main() {
       expect(capturedBody!.contains('<id>artistsearch</id>'), isTrue);
       expect(capturedBody!.contains('<term>test artist</term>'), isTrue);
       expect(result['count'], equals('0'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('getPlaylists makes correct HTTP request', () async {
       String? capturedBody;
@@ -269,7 +269,7 @@ void main() {
       expect(capturedBody!.contains('<id>playlistsearch</id>'), isTrue);
       expect(capturedBody!.contains('<term>my playlist</term>'), isTrue);
       expect(result['count'], equals('0'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('search with pagination parameters', () async {
       String? capturedBody;
@@ -296,8 +296,8 @@ void main() {
       expect(capturedBody!.contains('<count>50</count>'), isTrue);
       expect(result['index'], equals('10'));
       expect(result['total'], equals('100'));
-    });
-  });
+    }, timeout: Timeout(Duration(seconds: 5)));
+  }, timeout: Timeout(Duration(seconds: 5)));
 
   group('WimpPlugin browse', () {
     test('browse root makes correct HTTP request', () async {
@@ -328,7 +328,7 @@ void main() {
       expect(capturedSoapAction, equals('"http://www.sonos.com/Services/1.1#getMetadata"'));
       expect(capturedBody!.contains('<id>root</id>'), isTrue);
       expect(result['count'], equals('0'));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('browse with item checks service ID', () async {
       final plugin = WimpPlugin.forTesting(
@@ -348,7 +348,7 @@ void main() {
         () => plugin.browse(wrongServiceItem),
         throwsA(isA<ArgumentError>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('browse with valid item makes correct HTTP request', () async {
       String? capturedBody;
@@ -380,8 +380,8 @@ void main() {
 
       expect(capturedBody!.contains('<id>album_123</id>'), isTrue);
       expect(result['count'], equals('0'));
-    });
-  });
+    }, timeout: Timeout(Duration(seconds: 5)));
+  }, timeout: Timeout(Duration(seconds: 5)));
 
   group('WimpPlugin error handling', () {
     test('search error throws SoCoUPnPException', () async {
@@ -404,7 +404,7 @@ void main() {
         () => plugin.getTracks('nonexistent'),
         throwsA(isA<SoCoUPnPException>()),
       );
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('error code mapping for ItemNotFound', () async {
       final mockClient = MockClient((request) async {
@@ -429,7 +429,7 @@ void main() {
         expect(e.errorCode, equals('20001')); // ItemNotFound code
         expect(e.errorDescription, equals('ItemNotFound'));
       }
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('unknown error uses default code', () async {
       final mockClient = MockClient((request) async {
@@ -453,8 +453,8 @@ void main() {
       } on SoCoUPnPException catch (e) {
         expect(e.errorCode, equals('20000')); // Unknown error code
       }
-    });
-  });
+    }, timeout: Timeout(Duration(seconds: 5)));
+  }, timeout: Timeout(Duration(seconds: 5)));
 
   group('WimpPlugin XML body generation', () {
     test('search body contains correct SOAP headers', () async {
@@ -485,7 +485,7 @@ void main() {
       expect(
           capturedBody!.contains('<deviceProvider>Sonos</deviceProvider>'),
           isTrue);
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('search body contains search term and type', () async {
       String? capturedBody;
@@ -510,8 +510,8 @@ void main() {
       expect(capturedBody, isNotNull);
       expect(capturedBody!.contains('<id>tracksearch</id>'), isTrue);
       expect(capturedBody!.contains('<term>my search query</term>'), isTrue);
-    });
-  });
+    }, timeout: Timeout(Duration(seconds: 5)));
+  }, timeout: Timeout(Duration(seconds: 5)));
 
   group('WimpPlugin constants', () {
     test('valid search types', () {
@@ -519,7 +519,7 @@ void main() {
       for (final type in validTypes) {
         expect(validTypes.contains(type), isTrue);
       }
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     test('exception codes are defined', () {
       const codes = {
@@ -528,6 +528,6 @@ void main() {
       };
       expect(codes['unknown'], equals(20000));
       expect(codes['ItemNotFound'], equals(20001));
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 }

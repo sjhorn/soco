@@ -111,18 +111,20 @@ Map<String, dynamic> parseEventXml(String xmlEvent) {
           // 'channel' attribute. In addition, it seems that Sonos
           // sometimes uses a text value instead: see
           // http://forums.sonos.com/showthread.php?t=34663
-          var value =
+          var valueString =
               lastChangeVar.getAttribute('val') ?? lastChangeVar.innerText;
 
-          if (value.isEmpty) continue;
+          if (valueString.isEmpty) continue;
+
+          dynamic value = valueString;
 
           // If DIDL metadata is returned, convert it to a music
           // library data structure
-          if (value.startsWith('<DIDL-Lite')) {
+          if (valueString.startsWith('<DIDL-Lite')) {
             // Wrap any parsing exception in a SoCoFault, so the
             // user can handle it
             try {
-              value = fromDidlString(value)[0];
+              value = fromDidlString(valueString)[0];
             } on SoCoException catch (originalException) {
               _log.fine(
                 'Event contains illegal metadata for \'$tag\'.\n'
@@ -131,7 +133,7 @@ Map<String, dynamic> parseEventXml(String xmlEvent) {
               );
               final eventParseException = EventParseException(
                 tag: tag,
-                metadata: value,
+                metadata: valueString,
                 cause: originalException,
               );
               value = SoCoFault(eventParseException) as dynamic;

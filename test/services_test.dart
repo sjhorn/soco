@@ -315,7 +315,7 @@ void main() {
         ]);
 
         expect(result['CurrentVolume'], equals('75'));
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('throws SoCoUPnPException on UPnP error', () async {
         final mockClient = MockClient((request) async {
@@ -335,7 +335,7 @@ void main() {
                 .having((e) => e.errorCode, 'errorCode', '402'),
           ),
         );
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('throws ClientException on non-200/500 response', () async {
         final mockClient = MockClient((request) async {
@@ -349,7 +349,7 @@ void main() {
           () => service.sendCommand('GetVolume'),
           throwsA(isA<http.ClientException>()),
         );
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('caches responses when cache is enabled', () async {
         var callCount = 0;
@@ -382,7 +382,7 @@ void main() {
         );
         // Note: Cache may not work due to cache key implementation
         // This test documents the expected behavior
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('bypasses cache when useCache is false', () async {
         var callCount = 0;
@@ -409,8 +409,8 @@ void main() {
         );
 
         expect(callCount, equals(2));
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('handleUpnpError', () {
       test('throws SoCoUPnPException with error details', () {
@@ -428,7 +428,7 @@ void main() {
                 ),
           ),
         );
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('uses known error message for standard error codes', () {
         final service = RenderingControl(device);
@@ -560,41 +560,213 @@ void main() {
 
 
     group('actions getter', () {
-      test('returns empty list and caches result', () async {
-        final service = RenderingControl(device);
+      test('returns empty list when SCPD fetch fails', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('Not Found', 404);
+        });
 
-        // First call
-        final actions1 = await service.actions;
-        expect(actions1, isEmpty);
+        final service = RenderingControl(device);
+        service.httpClient = mockClient;
+
+        final actions = await service.actions;
+        expect(actions, isEmpty);
+      }, timeout: Timeout(Duration(seconds: 5)));
+
+      test('parses SCPD document and returns actions', () async {
+        final scpdXml = '''<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <serviceStateTable>
+    <stateVariable sendEvents="yes">
+      <name>Volume</name>
+      <dataType>ui2</dataType>
+      <defaultValue>50</defaultValue>
+      <allowedValueRange>
+        <minimum>0</minimum>
+        <maximum>100</maximum>
+      </allowedValueRange>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>Mute</name>
+      <dataType>boolean</dataType>
+      <defaultValue>0</defaultValue>
+      <allowedValueList>
+        <allowedValue>0</allowedValue>
+        <allowedValue>1</allowedValue>
+      </allowedValueList>
+    </stateVariable>
+  </serviceStateTable>
+  <actionList>
+    <action>
+      <name>GetVolume</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>CurrentVolume</name>
+          <direction>out</direction>
+          <relatedStateVariable>Volume</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+    <action>
+      <name>SetVolume</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>InstanceID</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>Channel</name>
+          <direction>in</direction>
+          <relatedStateVariable>Channel</relatedStateVariable>
+        </argument>
+        <argument>
+          <name>DesiredVolume</name>
+          <direction>in</direction>
+          <relatedStateVariable>Volume</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+  </actionList>
+</scpd>''';
+
+        final mockClient = MockClient((request) async {
+          expect(request.url.path, contains('/xml/RenderingControl1.xml'));
+          return http.Response(scpdXml, 200);
+        });
+
+        final service = RenderingControl(device);
+        service.httpClient = mockClient;
+
+        final actions = await service.actions;
+
+        expect(actions.length, equals(2));
+        expect(actions.any((a) => a.name == 'GetVolume'), isTrue);
+        expect(actions.any((a) => a.name == 'SetVolume'), isTrue);
+
+        final getVolume = actions.firstWhere((a) => a.name == 'GetVolume');
+        expect(getVolume.inArgs.length, equals(2));
+        expect(getVolume.outArgs.length, equals(1));
+        expect(getVolume.outArgs.first.name, equals('CurrentVolume'));
 
         // Second call should return same cached instance
         final actions2 = await service.actions;
-        expect(identical(actions1, actions2), isTrue);
-      });
-    });
+        expect(identical(actions, actions2), isTrue);
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('eventVars getter', () {
-      test('returns empty map and caches result', () async {
-        final service = RenderingControl(device);
+      test('returns empty map when SCPD fetch fails', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('Not Found', 404);
+        });
 
-        // First call
-        final vars1 = await service.eventVars;
-        expect(vars1, isEmpty);
+        final service = RenderingControl(device);
+        service.httpClient = mockClient;
+
+        final vars = await service.eventVars;
+        expect(vars, isEmpty);
+      }, timeout: Timeout(Duration(seconds: 5)));
+
+      test('parses SCPD document and returns event variables', () async {
+        final scpdXml = '''<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <serviceStateTable>
+    <stateVariable sendEvents="yes">
+      <name>Volume</name>
+      <dataType>ui2</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="yes">
+      <name>Mute</name>
+      <dataType>boolean</dataType>
+    </stateVariable>
+    <stateVariable sendEvents="no">
+      <name>InternalState</name>
+      <dataType>string</dataType>
+    </stateVariable>
+  </serviceStateTable>
+</scpd>''';
+
+        final mockClient = MockClient((request) async {
+          expect(request.url.path, contains('/xml/RenderingControl1.xml'));
+          return http.Response(scpdXml, 200);
+        });
+
+        final service = RenderingControl(device);
+        service.httpClient = mockClient;
+
+        final vars = await service.eventVars;
+
+        expect(vars.length, equals(2));
+        expect(vars.containsKey('Volume'), isTrue);
+        expect(vars.containsKey('Mute'), isTrue);
+        expect(vars['Volume'], equals('ui2'));
+        expect(vars['Mute'], equals('boolean'));
+        expect(vars.containsKey('InternalState'), isFalse); // sendEvents="no"
 
         // Second call should return same cached instance
         final vars2 = await service.eventVars;
-        expect(identical(vars1, vars2), isTrue);
-      });
-    });
+        expect(identical(vars, vars2), isTrue);
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('iterActions', () {
       test('yields no actions when actions list is empty', () async {
+        final mockClient = MockClient((request) async {
+          return http.Response('Not Found', 404);
+        });
+
         final service = RenderingControl(device);
+        service.httpClient = mockClient;
 
         final actions = await service.iterActions().toList();
         expect(actions, isEmpty);
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+
+      test('yields actions from parsed SCPD document', () async {
+        final scpdXml = '''<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <serviceStateTable>
+    <stateVariable sendEvents="no">
+      <name>Volume</name>
+      <dataType>ui2</dataType>
+    </stateVariable>
+  </serviceStateTable>
+  <actionList>
+    <action>
+      <name>GetVolume</name>
+      <argumentList>
+        <argument>
+          <name>InstanceID</name>
+          <direction>in</direction>
+          <relatedStateVariable>Volume</relatedStateVariable>
+        </argument>
+      </argumentList>
+    </action>
+  </actionList>
+</scpd>''';
+
+        final mockClient = MockClient((request) async {
+          return http.Response(scpdXml, 200);
+        });
+
+        final service = RenderingControl(device);
+        service.httpClient = mockClient;
+
+        final actions = await service.iterActions().toList();
+        expect(actions.length, equals(1));
+        expect(actions.first.name, equals('GetVolume'));
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('subscribe', () {
       test('throws UnimplementedError', () async {
@@ -604,8 +776,8 @@ void main() {
           () => service.subscribe(),
           throwsA(isA<UnimplementedError>()),
         );
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('updateCacheOnEvent', () {
       test('updates cache with event variables', () {
@@ -621,8 +793,8 @@ void main() {
         service.updateCacheOnEvent(mockEvent);
 
         // We can't easily verify cache contents, but we verify it doesn't throw
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('additionalHeaders', () {
       test('are included in buildCommand', () {
@@ -632,23 +804,33 @@ void main() {
         final (headers, _) = service.buildCommand('GetVolume');
 
         expect(headers['X-Custom'], equals('value'));
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('composeArgs', () {
       test('throws for unknown action', () async {
+        final mockClient = MockClient((request) async {
+          // Return empty SCPD document
+          return http.Response('''<?xml version="1.0"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <serviceStateTable/>
+  <actionList/>
+</scpd>''', 200);
+        });
+
         final service = RenderingControl(device);
+        service.httpClient = mockClient;
 
         expect(
           () => service.composeArgs('NonExistentAction', {}),
           throwsArgumentError,
         );
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       // Note: Tests for unexpected/missing arguments require actual action metadata
       // which is loaded dynamically from the device. These paths are tested
       // via integration tests with real/mocked device responses.
-    });
+    }, timeout: Timeout(Duration(seconds: 5)));
 
     group('unwrapArguments', () {
       test('handles XML with illegal characters by filtering', () {
@@ -666,7 +848,7 @@ void main() {
         final result = Service.unwrapArguments(xmlWithControlChar);
         expect(result, isA<Map<String, String>>());
         expect(result.containsKey('CurrentVolume'), isTrue);
-      });
+      }, timeout: Timeout(Duration(seconds: 5)));
 
       test('parses valid SOAP response correctly', () {
         final validXml = '''<?xml version="1.0"?>
@@ -680,8 +862,8 @@ void main() {
 
         final result = Service.unwrapArguments(validXml);
         expect(result['CurrentVolume'], equals('42'));
-      });
-    });
+      }, timeout: Timeout(Duration(seconds: 5)));
+    }, timeout: Timeout(Duration(seconds: 5)));
   });
 }
 
